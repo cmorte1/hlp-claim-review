@@ -51,7 +51,7 @@ if "paused" not in st.session_state:
 
 # ---------- Landing Page ----------
 if not st.session_state.user_submitted:
-    st.title("🧠 Human-Level Performance: Claim Review App_v0.12")
+    st.title("🧠 Human-Level Performance: Claim Review App_v0.11")
     st.markdown("""
     Welcome to the HLP assessment pilot!  
     You'll review **one claim at a time**, complete a short form, and provide your expert input.  
