@@ -51,7 +51,7 @@ if "paused" not in st.session_state:
 
 # ---------- Landing Page ----------
 if not st.session_state.user_submitted:
-    st.title("🧠 Human-Level Performance: Claim Review App_v0.7")
+    st.title("🧠 Human-Level Performance: Claim Review App_v0.11")
     st.markdown("""
     Welcome to the HLP assessment pilot!  
     You'll review **one claim at a time**, complete a short form, and provide your expert input.  
@@ -124,19 +124,19 @@ with st.container():
             time_taken = round(time.time() - st.session_state.start_time, 2)
             st.session_state.start_time = time.time()
             sheet.append_row([
-                st.session_state.user_name,
-                st.session_state.user_email,
-                claim["claim_number"],
-                claim["policy_number"],
-                st.session_state.triage,
-                st.session_state.loss_cause,
-                "; ".join(st.session_state.coverage),
-                st.session_state.init_determination,
-                st.session_state.applicable_limit,
-                st.session_state.damage_items,
-                st.session_state.place_occurrence,
-                st.session_state.notes,
-                time_taken
+                str(st.session_state.user_name),
+                str(st.session_state.user_email),
+                str(claim["claim_number"]),
+                str(claim["policy_number"]),
+                str(st.session_state.triage),
+                str(st.session_state.loss_cause),
+                "; ".join([str(cov) for cov in st.session_state.coverage]),
+                str(st.session_state.init_determination),
+                str(st.session_state.applicable_limit),
+                str(st.session_state.damage_items),
+                str(st.session_state.place_occurrence),
+                str(st.session_state.notes),
+                str(time_taken)
             ])
             if st.session_state.claim_index < len(claims_df) - 1:
                 st.session_state.claim_index += 1
