@@ -8,7 +8,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 # ---------- Google Sheets Setup ----------
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds_dict = st.secrets["gcp_service_account"]
+creds_dict = json.loads(str(st.secrets["gcp_service_account"]))
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 gclient = gspread.authorize(creds)
 sheet = gclient.open("HLP_Responses").sheet1
@@ -39,7 +39,7 @@ if "paused" not in st.session_state:
 
 # ---------- Landing Page ----------
 if not st.session_state.user_submitted:
-    st.title("🧠 Human-Level Performance: Claim Review App")
+    st.title("🧠 Human-Level Performance: Claim Review App_v0.7")
     st.markdown("""
     Welcome to the HLP assessment pilot!  
     You'll review **one claim at a time**, complete a short form, and provide your expert input.  
