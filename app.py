@@ -45,10 +45,10 @@ claims_df.columns = (
 
 # ---------- Reset form inputs ----------
 def reset_form_state():
-    st.session_state.triage = None
-    st.session_state.loss_cause = None
+    st.session_state.triage = 'Enough information'
+    st.session_state.loss_cause = 'Flood'
     st.session_state.coverage = []
-    st.session_state.init_determination = None
+    st.session_state.init_determination = 'Covered'
     st.session_state.applicable_limit = 0.0
     st.session_state.damage_items = ""
     st.session_state.place_occurrence = ""
@@ -87,7 +87,7 @@ if not st.session_state.user_submitted:
     start_button = st.button("🚀 Start Reviewing")
 
     if start_button:
-        if email not in ALLOWED_EMAILS:
+        if email.lower() not in [e.lower() for e in ALLOWED_EMAILS]:
             st.error("🚫 Access denied. Your email is not authorized.")
             st.stop()
         st.session_state.user_name = name
@@ -96,9 +96,10 @@ if not st.session_state.user_submitted:
         # Resume progress
         responses = pd.DataFrame(sheet.get_all_records())
         if not responses.empty:
-            user_responses = responses[responses['Email'] == email]
+            user_responses = responses[responses['Email'].str.lower() == email.lower()]
             if not user_responses.empty:
                 st.session_state.claim_index = len(user_responses)
+                st.info(f"Resuming from claim {st.session_state.claim_index + 1}")
 
         st.session_state.user_submitted = True
         st.session_state.start_time = time.time()
@@ -108,6 +109,7 @@ if not st.session_state.user_submitted:
 # ---------- Pause check ----------
 if st.session_state.paused:
     st.warning("🟡 Session paused. Click below to resume.")
+    st.info(f"Assessment paused at claim {st.session_state.claim_index + 1}")
     if st.button("🟢 Resume Assessment"):
         st.session_state.paused = False
         st.session_state.claim_index += 1
@@ -115,6 +117,12 @@ if st.session_state.paused:
         st.rerun()
     st.stop()
 
+# ---------- Prevent Claim Overflow ----------
+if st.session_state.claim_index >= len(claims_df):
+    st.success("🎉 All claims reviewed. You're a legend!")
+    st.balloons()
+    st.stop()
+    
 # ---------- Display Claim ----------
 claim = claims_df.iloc[st.session_state.claim_index]
 
@@ -153,20 +161,29 @@ st.divider()
 # ---------- Assessment Form ----------
 with st.form("claim_form"):
     st.subheader("📝 Your Assessment")
-    st.selectbox("Triage", ['Enough information', 'More information needed'], key="triage")
-    st.selectbox("Loss cause", [
+
+    triage_options = ['Enough information', 'More information needed']
+    loss_cause_options = [
         'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
         'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
         'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
-    ], key="loss_cause")
-    st.multiselect("Applicable coverage", [
+    ]
+    coverage_options = [
         'Coverage A: Dwelling', 'Coverage B: Other Structures', 'Coverage C: Personal Property'
-    ], key="coverage")
-    st.selectbox("Initial coverage determination", ['Covered', 'Not covered/excluded'], key="init_determination")
-    st.number_input("Applicable limit ($)", min_value=0.0, step=1000.0, key="applicable_limit")
-    st.text_area("Damage items", key="damage_items")
-    st.text_area("Place of occurrence", key="place_occurrence")
-    st.text_area("Additional notes or observations", key="notes")
+    ]
+    init_determination_options = ['Covered', 'Not covered/excluded']
+
+    st.selectbox("Triage", triage_options, key="triage", index=triage_options.index(st.session_state.get("triage", triage_options[0])))
+    st.selectbox("Loss cause", loss_cause_options, key="loss_cause", index=loss_cause_options.index(st.session_state.get("loss_cause", loss_cause_options[0])))
+    st.multiselect("Applicable coverage", coverage_options, key="coverage", default=st.session_state.get("coverage", []))
+    st.selectbox("Initial coverage determination", init_determination_options, key="init_determination", index=init_determination_options.index(st.session_state.get("init_determination", init_determination_options[0])))
+    st.number_input("Applicable limit ($)", min_value=0.0, step=1000.0, key="applicable_limit", value=st.session_state.get("applicable_limit", 0.0))
+    st.text_area("Damage items", key="damage_items", value=st.session_state.get("damage_items", ""))
+    st.text_area("Place of occurrence", key="place_occurrence", value=st.session_state.get("place_occurrence", ""))
+    st.text_area("Additional notes or observations", key="notes", value=st.session_state.get("notes", ""))
+
+    # Required to suppress warning
+    st.form_submit_button("✔️ Save")
 
 # ---------- Bottom Status ----------
 st.divider()
