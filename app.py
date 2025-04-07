@@ -35,6 +35,17 @@ claims_df.columns = (
     .str.replace(" ", "_")
 )
 
+# ---------- Reset form inputs for each claim ----------
+def reset_form_state():
+    st.session_state.triage = None
+    st.session_state.loss_cause = None
+    st.session_state.coverage = []
+    st.session_state.init_determination = None
+    st.session_state.applicable_limit = 0.0
+    st.session_state.damage_items = ""
+    st.session_state.place_occurrence = ""
+    st.session_state.notes = ""
+
 # ---------- Initialize session state ----------
 if "user_submitted" not in st.session_state:
     st.session_state.user_submitted = False
@@ -51,7 +62,7 @@ if "paused" not in st.session_state:
 
 # ---------- Landing Page ----------
 if not st.session_state.user_submitted:
-    st.title("🧠 Human-Level Performance: Claim Review App_v0.11")
+    st.title("🧠 Human-Level Performance: Claim Review App_v0.12")
     st.markdown("""
     Welcome to the HLP assessment pilot!  
     You'll review **one claim at a time**, complete a short form, and provide your expert input.  
@@ -79,13 +90,15 @@ if st.session_state.paused:
     if st.button("🟢 Resume Assessment"):
         st.session_state.paused = False
         st.session_state.claim_index += 1
+        reset_form_state()
         st.rerun()
     st.stop()
 
 # ---------- Display Claim ----------
 claim = claims_df.iloc[st.session_state.claim_index]
-st.markdown(f"### Claim {st.session_state.claim_index + 1} of {len(claims_df)}")
 
+# ---------- Top Status ----------
+st.markdown(f"### Claim {st.session_state.claim_index + 1} of {len(claims_df)}")
 progress = int((st.session_state.claim_index + 1) / len(claims_df) * 100)
 st.progress(progress, text=f"Progress: {progress}%")
 
@@ -116,7 +129,32 @@ with st.container():
 
 st.divider()
 
+# ---------- Assessment Form ----------
+with st.form("claim_form"):
+    st.subheader("📝 Your Assessment")
+    st.session_state.triage = st.selectbox("Triage", ['Enough information', 'More information needed'])
+    st.session_state.loss_cause = st.selectbox("Loss cause", [
+        'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
+        'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
+        'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'])
+    st.session_state.coverage = st.multiselect("Applicable coverage", [
+        'Coverage A: Dwelling', 'Coverage B: Other Structures', 'Coverage C: Personal Property'])
+    st.session_state.init_determination = st.selectbox("Initial coverage determination", ['Covered', 'Not covered/excluded'])
+    st.session_state.applicable_limit = st.number_input("Applicable limit ($)", min_value=0.0, step=1000.0)
+    st.session_state.damage_items = st.text_area("Damage items")
+    st.session_state.place_occurrence = st.text_area("Place of occurrence")
+    st.session_state.notes = st.text_area("Additional notes or observations")
+    st.form_submit_button("🔝 Go to the top", on_click=lambda: st.markdown("""<script>window.scrollTo({top: 0, behavior: 'smooth'});</script>""", unsafe_allow_html=True))
+
+# ---------- Bottom Status ----------
+st.divider()
+st.markdown(f"### Claim {st.session_state.claim_index + 1} of {len(claims_df)}")
+st.progress(progress, text=f"Progress: {progress}%")
+if (idx := st.session_state.claim_index + 1) in milestones:
+    st.success(milestones[idx])
+
 # ---------- Action Buttons ----------
+st.divider()
 with st.container():
     colA, colB = st.columns(2)
     with colA:
@@ -140,6 +178,7 @@ with st.container():
             ])
             if st.session_state.claim_index < len(claims_df) - 1:
                 st.session_state.claim_index += 1
+                reset_form_state()
                 st.rerun()
             else:
                 st.balloons()
@@ -166,20 +205,3 @@ with st.container():
             ])
             st.session_state.paused = True
             st.rerun()
-
-# ---------- Assessment Form ----------
-with st.form("claim_form"):
-    st.subheader("📝 Your Assessment")
-    st.session_state.triage = st.selectbox("Triage", ['Enough information', 'More information needed'])
-    st.session_state.loss_cause = st.selectbox("Loss cause", [
-        'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
-        'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
-        'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'])
-    st.session_state.coverage = st.multiselect("Applicable coverage", [
-        'Coverage A: Dwelling', 'Coverage C: Personal Property', 'Coverage D: Loss of use'])
-    st.session_state.init_determination = st.selectbox("Initial coverage determination", ['Covered', 'Not covered/excluded'])
-    st.session_state.applicable_limit = st.number_input("Applicable limit ($)", min_value=0.0, step=1000.0)
-    st.session_state.damage_items = st.text_area("Damage items")
-    st.session_state.place_occurrence = st.text_area("Place of occurrence")
-    st.session_state.notes = st.text_area("Additional notes or observations")
-    st.form_submit_button("🔝 Go to the top", on_click=lambda: st.markdown("""<script>window.scrollTo({top: 0, behavior: 'smooth'});</script>""", unsafe_allow_html=True))
