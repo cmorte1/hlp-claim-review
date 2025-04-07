@@ -45,6 +45,12 @@ claims_df.columns = (
 
 # ---------- Reset form inputs ----------
 def reset_form_state():
+    st.session_state.clear()
+    st.session_state.user_submitted = True
+    st.session_state.user_name = st.session_state.get("user_name", "")
+    st.session_state.user_email = st.session_state.get("user_email", "")
+    st.session_state.claim_index = st.session_state.get("claim_index", 0)
+    st.session_state.start_time = time.time()
     st.session_state.triage = 'Enough information'
     st.session_state.loss_cause = 'Flood'
     st.session_state.coverage = []
@@ -112,8 +118,8 @@ if st.session_state.paused:
     st.info(f"Assessment paused at claim {st.session_state.claim_index + 1}")
     if st.button("🟢 Resume Assessment"):
         st.session_state.paused = False
+        reset_form_state()
         st.session_state.claim_index += 1
-        st.session_state.reset_flag = True
         st.rerun()
     st.stop()
 
@@ -122,7 +128,7 @@ if st.session_state.claim_index >= len(claims_df):
     st.success("🎉 All claims reviewed. You're a legend!")
     st.balloons()
     st.stop()
-    
+
 # ---------- Display Claim ----------
 claim = claims_df.iloc[st.session_state.claim_index]
 
@@ -215,7 +221,7 @@ with colA:
             str(time_taken)
         ])
         if st.session_state.claim_index < len(claims_df) - 1:
-            reset_form_state()
+            reset_form_state()  # ⬅️ Clear before advancing
             st.session_state.claim_index += 1
             st.rerun()
         else:
