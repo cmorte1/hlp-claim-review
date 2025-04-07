@@ -1,10 +1,18 @@
-# Human-Level Performance Claim Review App (Google Sheets Edition)
+# Human-Level Performance Claim Review App (Access-Controlled & Resumable)
 import streamlit as st
 import pandas as pd
 import time
 import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+
+# ---------- Access Control List ----------
+ALLOWED_EMAILS = [
+    'almodovar@mapfre.com',
+    'esgonza@mapfre.com',
+    'cortega@mapfreusa.com',
+    'cmorte1@mapfre.com'
+]
 
 # ---------- Google Sheets Setup ----------
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
@@ -65,25 +73,36 @@ if "reset_flag" in st.session_state and st.session_state.reset_flag:
 
 # ---------- Landing Page ----------
 if not st.session_state.user_submitted:
-    st.title("🧠 Human-Level Performance: Claim Review App_v0.13")
+    st.title("🧠 Human-Level Performance: Claim Review App")
     st.markdown("""
     Welcome to the HLP assessment pilot!  
     You'll review **one claim at a time**, complete a short form, and provide your expert input.  
     Each entry will be timed to evaluate review speed and agreement levels, **but please don't rush**, take the necessary time to properly review each claim.
 
-    ⏱️ The timer starts when you begin reviewing each claim. Let's begin by entering your name and email.
+    ⏱️ The timer starts when you begin reviewing each claim.
     """)
+
     name = st.text_input("Full Name")
     email = st.text_input("Email Address")
+    start_button = st.button("🚀 Start Reviewing")
 
-    if name and email:
+    if start_button:
+        if email not in ALLOWED_EMAILS:
+            st.error("🚫 Access denied. Your email is not authorized.")
+            st.stop()
         st.session_state.user_name = name
         st.session_state.user_email = email
+
+        # Resume progress
+        responses = pd.DataFrame(sheet.get_all_records())
+        if not responses.empty:
+            user_responses = responses[responses['Email'] == email]
+            if not user_responses.empty:
+                st.session_state.claim_index = len(user_responses)
+
         st.session_state.user_submitted = True
         st.session_state.start_time = time.time()
         st.rerun()
-    else:
-        st.warning("Please enter your name and email to continue.")
     st.stop()
 
 # ---------- Pause check ----------
@@ -148,10 +167,6 @@ with st.form("claim_form"):
     st.text_area("Damage items", key="damage_items")
     st.text_area("Place of occurrence", key="place_occurrence")
     st.text_area("Additional notes or observations", key="notes")
-    st.form_submit_button("🔝 Go to the top", on_click=lambda: st.markdown(
-        """<script>window.scrollTo({top: 0, behavior: 'smooth'});</script>""",
-        unsafe_allow_html=True
-    ))
 
 # ---------- Bottom Status ----------
 st.divider()
@@ -162,53 +177,53 @@ if (idx := st.session_state.claim_index + 1) in milestones:
 
 # ---------- Action Buttons ----------
 st.divider()
-with st.container():
-    colA, colB = st.columns(2)
-    with colA:
-        if st.button("✅ Submit and Continue"):
-            time_taken = round(time.time() - st.session_state.start_time, 2)
-            st.session_state.start_time = time.time()
-            sheet.append_row([
-                str(st.session_state.user_name),
-                str(st.session_state.user_email),
-                str(claim["claim_number"]),
-                str(claim["policy_number"]),
-                str(st.session_state.triage),
-                str(st.session_state.loss_cause),
-                "; ".join([str(cov) for cov in st.session_state.coverage]),
-                str(st.session_state.init_determination),
-                str(st.session_state.applicable_limit),
-                str(st.session_state.damage_items),
-                str(st.session_state.place_occurrence),
-                str(st.session_state.notes),
-                str(time_taken)
-            ])
-            if st.session_state.claim_index < len(claims_df) - 1:
-                st.session_state.claim_index += 1
-                st.session_state.reset_flag = True
-                st.rerun()
-            else:
-                st.balloons()
-                st.success("🎉 All claims reviewed. You’re a legend!")
-                st.stop()
-    with colB:
-        if st.button("🟡 Submit and Pause"):
-            time_taken = round(time.time() - st.session_state.start_time, 2)
-            st.session_state.start_time = time.time()
-            sheet.append_row([
-                str(st.session_state.user_name),
-                str(st.session_state.user_email),
-                str(claim["claim_number"]),
-                str(claim["policy_number"]),
-                str(st.session_state.triage),
-                str(st.session_state.loss_cause),
-                "; ".join([str(cov) for cov in st.session_state.coverage]),
-                str(st.session_state.init_determination),
-                str(st.session_state.applicable_limit),
-                str(st.session_state.damage_items),
-                str(st.session_state.place_occurrence),
-                str(st.session_state.notes),
-                str(time_taken)
-            ])
-            st.session_state.paused = True
+colA, colB = st.columns(2)
+with colA:
+    if st.button("✅ Submit and Continue"):
+        time_taken = round(time.time() - st.session_state.start_time, 2)
+        st.session_state.start_time = time.time()
+        sheet.append_row([
+            str(st.session_state.user_name),
+            str(st.session_state.user_email),
+            str(claim["claim_number"]),
+            str(claim["policy_number"]),
+            str(st.session_state.triage),
+            str(st.session_state.loss_cause),
+            "; ".join([str(cov) for cov in st.session_state.coverage]),
+            str(st.session_state.init_determination),
+            str(st.session_state.applicable_limit),
+            str(st.session_state.damage_items),
+            str(st.session_state.place_occurrence),
+            str(st.session_state.notes),
+            str(time_taken)
+        ])
+        if st.session_state.claim_index < len(claims_df) - 1:
+            reset_form_state()
+            st.session_state.claim_index += 1
             st.rerun()
+        else:
+            st.balloons()
+            st.success("🎉 All claims reviewed. You’re a legend!")
+            st.stop()
+
+with colB:
+    if st.button("🟡 Submit and Pause"):
+        time_taken = round(time.time() - st.session_state.start_time, 2)
+        st.session_state.start_time = time.time()
+        sheet.append_row([
+            str(st.session_state.user_name),
+            str(st.session_state.user_email),
+            str(claim["claim_number"]),
+            str(claim["policy_number"]),
+            str(st.session_state.triage),
+            str(st.session_state.loss_cause),
+            "; ".join([str(cov) for cov in st.session_state.coverage]),
+            str(st.session_state.init_determination),
+            str(st.session_state.applicable_limit),
+            str(st.session_state.damage_items),
+            str(st.session_state.place_occurrence),
+            str(st.session_state.notes),
+            str(time_taken)
+        ])
+        st.session_state.paused = True
+        st.rerun()
