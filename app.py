@@ -59,6 +59,9 @@ if "user_email" not in st.session_state:
     st.session_state.user_email = ""
 if "paused" not in st.session_state:
     st.session_state.paused = False
+if "reset_flag" in st.session_state and st.session_state.reset_flag:
+    reset_form_state()
+    st.session_state.reset_flag = False
 
 # ---------- Landing Page ----------
 if not st.session_state.user_submitted:
@@ -90,7 +93,7 @@ if st.session_state.paused:
     if st.button("🟢 Resume Assessment"):
         st.session_state.paused = False
         st.session_state.claim_index += 1
-        reset_form_state()
+        st.session_state.reset_flag = True
         st.rerun()
     st.stop()
 
@@ -178,7 +181,7 @@ with st.container():
             ])
             if st.session_state.claim_index < len(claims_df) - 1:
                 st.session_state.claim_index += 1
-                reset_form_state()
+                st.session_state.reset_flag = True
                 st.rerun()
             else:
                 st.balloons()
