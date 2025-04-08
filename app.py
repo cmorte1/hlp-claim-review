@@ -235,6 +235,7 @@ with st.form("claim_form"):
                 st.success("🎉 All claims reviewed. You’re a legend!")
                 st.stop()
         elif submit_action == "Submit and Pause":
+            st.session_state.claim_index += 1  # Advance to next claim
             st.session_state.paused = True
             reset_form_state()
             st.rerun()
