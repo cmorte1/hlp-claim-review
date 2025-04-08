@@ -2,7 +2,6 @@
 import streamlit as st
 import pandas as pd
 import time
-import json
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -45,21 +44,30 @@ claims_df.columns = (
 
 # ---------- Reset form inputs ----------
 def reset_form_state(preserve_user=True):
-    preserved_keys = {}
     if preserve_user:
-        preserved_keys["user_name"] = st.session_state.get("user_name", "")
-        preserved_keys["user_email"] = st.session_state.get("user_email", "")
-        preserved_keys["claim_index"] = st.session_state.get("claim_index", 0)
-        preserved_keys["user_submitted"] = True
+        preserved = {
+            "user_name": st.session_state.get("user_name", ""),
+            "user_email": st.session_state.get("user_email", ""),
+            "claim_index": st.session_state.get("claim_index", 0),
+            "user_submitted": True,
+            "paused": False,
+            "start_time": time.time()
+        }
+    else:
+        preserved = {}
 
-    keys_to_remove = [key for key in st.session_state.keys() if key not in preserved_keys]
-    for key in keys_to_remove:
-        del st.session_state[key]
+    # Only clear the form-related keys
+    form_keys = [
+        "triage", "loss_cause", "coverage", "init_determination",
+        "applicable_limit", "damage_items", "place_occurrence", "notes"
+    ]
+    for key in form_keys:
+        if key in st.session_state:
+            del st.session_state[key]
 
-    for key, value in preserved_keys.items():
+    for key, value in preserved.items():
         st.session_state[key] = value
 
-    # Reset only form inputs
     st.session_state.triage = 'Enough information'
     st.session_state.loss_cause = 'Flood'
     st.session_state.coverage = []
