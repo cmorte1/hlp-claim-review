@@ -4,7 +4,6 @@ import pandas as pd
 import time
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import copy
 
 # ---------- Access Control List ----------
 ALLOWED_EMAILS = [
@@ -16,23 +15,17 @@ ALLOWED_EMAILS = [
 
 # ---------- Google Sheets Setup ----------
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds_dict = copy.deepcopy(st.secrets["gcp_service_account"])
-creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+secrets_dict = dict(st.secrets["gcp_service_account"])
+secrets_dict["private_key"] = secrets_dict["private_key"].replace("\\n", "\n")
+creds = ServiceAccountCredentials.from_json_keyfile_dict(secrets_dict, scope)
 gclient = gspread.authorize(creds)
 sheet = gclient.open("HLP_Responses").sheet1
 
-# ---------- Load and clean claims CSV ----------
+# ---------- Load Claims ----------
 claims_df = pd.read_csv("Claims.csv", encoding="utf-8", sep=";", engine="python")
-claims_df.columns = (
-    claims_df.columns
-    .str.strip()
-    .str.replace("\ufeff", "", regex=True)
-    .str.lower()
-    .str.replace(" ", "_")
-)
+claims_df.columns = claims_df.columns.str.strip().str.replace("\ufeff", "", regex=True).str.lower().str.replace(" ", "_")
 
-# ---------- Reset form inputs ----------
+# ---------- Reset SME form inputs ----------
 def reset_form_state(preserve_user=True):
     preserved = {
         "user_name": st.session_state.get("user_name", ""),
@@ -43,14 +36,13 @@ def reset_form_state(preserve_user=True):
         "start_time": time.time()
     } if preserve_user else {}
 
-    # Clear SME input fields
-    fields = [
+    keys = [
         "sme_loss_cause", "sme_damage_items", "sme_place_occurrence", "sme_triage",
         "sme_triage_reasoning", "sme_prevailing_document", "sme_coverage_applicable",
         "sme_limit_applicable", "sme_reasoning", "sme_claim_prediction",
         "sme_ai_error", "sme_notes"
     ]
-    for key in fields:
+    for key in keys:
         if "coverage" in key:
             st.session_state[key] = []
         elif "limit" in key:
@@ -76,7 +68,6 @@ if not st.session_state.user_submitted:
 
     ⏱️ The timer starts when you begin reviewing each claim.
     """)
-
     name = st.text_input("Full Name")
     email = st.text_input("Email Address")
     start_button = st.button("🚀 Start Reviewing")
@@ -85,17 +76,14 @@ if not st.session_state.user_submitted:
         if email.lower() not in [e.lower() for e in ALLOWED_EMAILS]:
             st.error("🚫 Access denied. Your email is not authorized.")
             st.stop()
-
         st.session_state.user_name = name
         st.session_state.user_email = email
-
         responses = pd.DataFrame(sheet.get_all_records())
         if not responses.empty:
             user_responses = responses[responses['Email'].str.lower() == email.lower()]
             if not user_responses.empty:
                 st.session_state.claim_index = len(user_responses)
                 st.info(f"Resuming from claim {st.session_state.claim_index + 1}")
-
         st.session_state.user_submitted = True
         st.session_state.start_time = time.time()
         st.rerun()
@@ -118,7 +106,6 @@ if st.session_state.claim_index >= len(claims_df):
     st.balloons()
     st.stop()
 
-# ---------- Display Claim ----------
 claim = claims_df.iloc[st.session_state.claim_index]
 
 # ---------- Top Status ----------
@@ -126,7 +113,6 @@ st.markdown(f"### Claim {st.session_state.claim_index + 1} of {len(claims_df)}")
 progress = int((st.session_state.claim_index + 1) / len(claims_df) * 100)
 st.progress(progress, text=f"Progress: {progress}%")
 
-# ---------- Milestones ----------
 milestones = {
     1: "🎉 First claim! You’re off to a great start!",
     3: "🔄 Rule of three: You’re on a roll now!",
@@ -149,11 +135,15 @@ st.markdown(f"**Claim Number:** `{claim['claim_number']}`")
 st.markdown(f"<span style='color:gold'>Loss Description:</span> {claim['loss_description']}", unsafe_allow_html=True)
 st.divider()
 
-# ---------- Assessment Form ----------
+# ---------- Form ----------
 with st.form("claim_form"):
-    st.subheader("🩺 Triage")
+    st.subheader("📝 Triage")
     st.markdown(f"<span style='color:gold'>AI Loss Cause:</span> {claim['ai_loss_cause']}", unsafe_allow_html=True)
-    st.selectbox("SME Loss Cause", [...], key="sme_loss_cause")
+    st.selectbox("SME Loss Cause", [
+        'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane', 'Mold',
+        'Sewage backup', 'Snow/Ice', 'Water damage', 'Water damage due to appliance failure',
+        'Water damage due to plumbing system', 'Other'
+    ], key="sme_loss_cause")
 
     st.markdown(f"<span style='color:gold'>AI Damage Items:</span> {claim['ai_damage_items']}", unsafe_allow_html=True)
     st.text_area("SME Damage Items", max_chars=108, key="sme_damage_items")
@@ -165,31 +155,35 @@ with st.form("claim_form"):
     st.selectbox("SME Triage", ['Enough information', 'More information needed'], key="sme_triage")
 
     st.markdown(f"<span style='color:gold'>AI Triage Reasoning:</span> {claim['ai_triage_reasoning']}", unsafe_allow_html=True)
-    st.text_area("SME Triage Reasoning", key="sme_triage_reasoning", height=120, max_chars=322)
+    st.text_area("SME Triage Reasoning", max_chars=322, key="sme_triage_reasoning", height=100)
 
-    st.divider()
     st.subheader("📘 Claim Prediction")
     st.markdown(f"<span style='color:gold'>AI Prevailing Document:</span> {claim['ai_prevailing_document']}", unsafe_allow_html=True)
     st.selectbox("SME Prevailing Document", ['Policy', 'Endorsement'], key="sme_prevailing_document")
 
-    st.markdown(f"<span style='color:gold'>AI Section/Page Document:</span> {claim['ai_section_page_document']}", unsafe_allow_html=True)
+    st.markdown(f"<span style='color:gold'>AI Section/Page Document:</span> {claim['ai_section/page_document']}", unsafe_allow_html=True)
 
-    st.markdown(f"<span style='color:gold'>AI Coverage (applicable):</span> {claim['ai_coverage_applicable']}", unsafe_allow_html=True)
-    st.multiselect("SME Coverage (applicable)", [...], key="sme_coverage_applicable")
+    st.markdown(f"<span style='color:gold'>AI Coverage (applicable):</span> {claim['ai_coverage_(applicable)']}", unsafe_allow_html=True)
+    st.multiselect("SME Coverage (applicable)", [
+        'Advantage Elite', 'Coverage A: Dwelling', 'Coverage B: Other Structures',
+        'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
+    ], key="sme_coverage_applicable")
 
-    st.markdown(f"<span style='color:gold'>AI Limit (applicable):</span> {claim['ai_limit_applicable']}", unsafe_allow_html=True)
+    st.markdown(f"<span style='color:gold'>AI Limit (applicable):</span> {claim['ai_limit_(applicable)']}", unsafe_allow_html=True)
     st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
 
     st.markdown(f"<span style='color:gold'>AI Reasoning:</span> {claim['ai_reasoning']}", unsafe_allow_html=True)
-    st.text_area("SME Reasoning", key="sme_reasoning", max_chars=1760)
+    st.text_area("SME Reasoning", max_chars=1760, key="sme_reasoning")
 
     st.markdown(f"<span style='color:gold'>AI Claim Prediction:</span> {claim['ai_claim_prediction']}", unsafe_allow_html=True)
-    st.selectbox("SME Claim Prediction", [...], key="sme_claim_prediction")
+    st.selectbox("SME Claim Prediction", [
+        'Covered - Fully', 'Covered - Likely',
+        'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
+    ], key="sme_claim_prediction")
 
-    st.selectbox("SME AI Error", ["", ...], key="sme_ai_error")
+    st.selectbox("SME AI Error", ["", 'Claim Reasoning KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'], key="sme_ai_error")
     st.text_area("SME Notes or Observations", key="sme_notes")
 
-    # --- Submit Area ---
     submit_action = st.radio("Choose your action:", ["Submit and Continue", "Submit and Pause"], horizontal=True)
     submitted = st.form_submit_button("Submit")
 
@@ -221,5 +215,5 @@ with st.form("claim_form"):
 st.divider()
 st.markdown(f"### Claim {st.session_state.claim_index + 1} of {len(claims_df)}")
 st.progress(progress, text=f"Progress: {progress}%")
-if idx in milestones:
+if (idx := st.session_state.claim_index + 1) in milestones:
     st.success(milestones[idx])
