@@ -181,40 +181,6 @@ with st.container():
 
 st.divider()
 
-# ---------- Assessment Form ----------
-with st.form("claim_form"):
-    st.subheader("📝 Your Assessment")
-
-    triage_options = ['Enough information', 'More information needed']
-    loss_cause_options = [
-        'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
-        'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
-        'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
-    ]
-    coverage_options = [
-        'Coverage A: Dwelling', 'Coverage B: Other Structures', 'Coverage C: Personal Property'
-    ]
-    init_determination_options = ['Covered', 'Not covered/excluded']
-
-    st.selectbox("Triage", triage_options, key="triage", index=triage_options.index(st.session_state.get("triage", triage_options[0])))
-    st.selectbox("Loss cause", loss_cause_options, key="loss_cause", index=loss_cause_options.index(st.session_state.get("loss_cause", loss_cause_options[0])))
-    st.multiselect("Applicable coverage", coverage_options, key="coverage", default=st.session_state.get("coverage", []))
-    st.selectbox("Initial coverage determination", init_determination_options, key="init_determination", index=init_determination_options.index(st.session_state.get("init_determination", init_determination_options[0])))
-    st.number_input("Applicable limit ($)", min_value=0.0, step=1000.0, key="applicable_limit", value=st.session_state.get("applicable_limit", 0.0))
-    st.text_area("Damage items", key="damage_items", value=st.session_state.get("damage_items", ""))
-    st.text_area("Place of occurrence", key="place_occurrence", value=st.session_state.get("place_occurrence", ""))
-    st.text_area("Additional notes or observations", key="notes", value=st.session_state.get("notes", ""))
-
-    # Required to suppress warning
-    st.form_submit_button("✔️ Save")
-
-# ---------- Bottom Status ----------
-st.divider()
-st.markdown(f"### Claim {st.session_state.claim_index + 1} of {len(claims_df)}")
-st.progress(progress, text=f"Progress: {progress}%")
-if (idx := st.session_state.claim_index + 1) in milestones:
-    st.success(milestones[idx])
-
 # ---------- Assessment Form + Submission Buttons ----------
 with st.form("claim_form"):
     st.subheader("📝 Your Assessment")
