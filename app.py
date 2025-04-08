@@ -214,6 +214,8 @@ with colA:
     if st.button("✅ Submit and Continue"):
         time_taken = round(time.time() - st.session_state.start_time, 2)
         st.session_state.start_time = time.time()
+
+        # ➤ First: Append to Google Sheet (current answers preserved)
         sheet.append_row([
             str(st.session_state.user_name),
             str(st.session_state.user_email),
@@ -229,9 +231,10 @@ with colA:
             str(st.session_state.notes),
             str(time_taken)
         ])
+        # ➤ Then reset + advance
         if st.session_state.claim_index < len(claims_df) - 1:
-            reset_form_state()  # ⬅️ Clear before advancing
             st.session_state.claim_index += 1
+            reset_form_state()
             st.rerun()
         else:
             st.balloons()
@@ -242,6 +245,8 @@ with colB:
     if st.button("🟡 Submit and Pause"):
         time_taken = round(time.time() - st.session_state.start_time, 2)
         st.session_state.start_time = time.time()
+
+        # ➤ Save answers first
         sheet.append_row([
             str(st.session_state.user_name),
             str(st.session_state.user_email),
@@ -257,5 +262,8 @@ with colB:
             str(st.session_state.notes),
             str(time_taken)
         ])
+
+        # ➤ Then pause and reset
         st.session_state.paused = True
+        reset_form_state()
         st.rerun()
