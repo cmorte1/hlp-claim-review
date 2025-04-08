@@ -50,13 +50,12 @@ def reset_form_state(preserve_user=True):
             "user_email": st.session_state.get("user_email", ""),
             "claim_index": st.session_state.get("claim_index", 0),
             "user_submitted": True,
-            "paused": False,
+            "paused": st.session_state.get("paused", False),
             "start_time": time.time()
         }
     else:
         preserved = {}
 
-    # Only clear the form-related keys
     form_keys = [
         "triage", "loss_cause", "coverage", "init_determination",
         "applicable_limit", "damage_items", "place_occurrence", "notes"
@@ -116,7 +115,6 @@ if not st.session_state.user_submitted:
         st.session_state.user_name = name
         st.session_state.user_email = email
 
-        # Resume progress
         responses = pd.DataFrame(sheet.get_all_records())
         if not responses.empty:
             user_responses = responses[responses['Email'].str.lower() == email.lower()]
@@ -136,7 +134,6 @@ if st.session_state.paused:
     if st.button("🟢 Resume Assessment"):
         st.session_state.paused = False
         reset_form_state()
-        st.session_state.claim_index += 1
         st.rerun()
     st.stop()
 
@@ -181,7 +178,7 @@ with st.container():
 
 st.divider()
 
-# ---------- Assessment Form + Submission Buttons ----------
+# ---------- Assessment Form ----------
 with st.form("claim_form"):
     st.subheader("📝 Your Assessment")
 
@@ -205,10 +202,10 @@ with st.form("claim_form"):
     st.text_area("Place of occurrence", key="place_occurrence")
     st.text_area("Additional notes or observations", key="notes")
 
-    submit_continue = st.form_submit_button("✅ Submit and Continue")
-    submit_pause = st.form_submit_button("🟡 Submit and Pause")
+    submit_action = st.radio("Choose your action:", ["Submit and Continue", "Submit and Pause"], horizontal=True)
+    submitted = st.form_submit_button("Submit")
 
-    if submit_continue or submit_pause:
+    if submitted:
         time_taken = round(time.time() - st.session_state.start_time, 2)
         st.session_state.start_time = time.time()
 
@@ -219,7 +216,7 @@ with st.form("claim_form"):
             str(claim["policy_number"]),
             str(st.session_state.triage),
             str(st.session_state.loss_cause),
-            "; ".join([str(cov) for cov in st.session_state.coverage]),
+            "; ".join(st.session_state.coverage),
             str(st.session_state.init_determination),
             str(st.session_state.applicable_limit),
             str(st.session_state.damage_items),
@@ -228,7 +225,7 @@ with st.form("claim_form"):
             str(time_taken)
         ])
 
-        if submit_continue:
+        if submit_action == "Submit and Continue":
             if st.session_state.claim_index < len(claims_df) - 1:
                 st.session_state.claim_index += 1
                 reset_form_state()
@@ -237,8 +234,15 @@ with st.form("claim_form"):
                 st.balloons()
                 st.success("🎉 All claims reviewed. You’re a legend!")
                 st.stop()
-
-        elif submit_pause:
+        elif submit_action == "Submit and Pause":
             st.session_state.paused = True
             reset_form_state()
             st.rerun()
+
+# ---------- Bottom Status ----------
+st.divider()
+st.markdown(f"### Claim {st.session_state.claim_index + 1} of {len(claims_df)}")
+st.progress(progress, text=f"Progress: {progress}%")
+if (idx := st.session_state.claim_index + 1) in milestones:
+    st.success(milestones[idx])
+    
