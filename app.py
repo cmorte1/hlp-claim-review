@@ -27,7 +27,7 @@ claims_df = pd.read_csv("Claims.csv", encoding="utf-8", sep=";", engine="python"
 claims_df.columns = (
     claims_df.columns
     .str.strip()
-    .str.replace("﻿", "", regex=True)
+    .str.replace("\ufeff", "", regex=True)
     .str.lower()
     .str.replace(" ", "_")
 )
