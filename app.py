@@ -1,10 +1,10 @@
-
 # Human-Level Performance Claim Review App (Access-Controlled & Resumable)
 import streamlit as st
 import pandas as pd
 import time
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+import copy
 
 # ---------- Access Control List ----------
 ALLOWED_EMAILS = [
@@ -16,19 +16,8 @@ ALLOWED_EMAILS = [
 
 # ---------- Google Sheets Setup ----------
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds_dict = {
-    "type": st.secrets["gcp_service_account"]["type"],
-    "project_id": st.secrets["gcp_service_account"]["project_id"],
-    "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
-    "private_key": st.secrets["gcp_service_account"]["private_key"].replace("\\n", "\n"),
-    "client_email": st.secrets["gcp_service_account"]["client_email"],
-    "client_id": st.secrets["gcp_service_account"]["client_id"],
-    "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
-    "token_uri": st.secrets["gcp_service_account"]["token_uri"],
-    "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
-    "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"],
-    "universe_domain": st.secrets["gcp_service_account"].get("universe_domain", "googleapis.com")
-}
+creds_dict = copy.deepcopy(st.secrets["gcp_service_account"])
+creds_dict["private_key"] = creds_dict["private_key"].replace("\\n", "\n")
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 gclient = gspread.authorize(creds)
 sheet = gclient.open("HLP_Responses").sheet1
@@ -45,39 +34,37 @@ claims_df.columns = (
 
 # ---------- Reset form inputs ----------
 def reset_form_state(preserve_user=True):
-    preserved_keys = {}
-    if preserve_user:
-        preserved_keys = {
-            "user_name": st.session_state.get("user_name", ""),
-            "user_email": st.session_state.get("user_email", ""),
-            "claim_index": st.session_state.get("claim_index", 0),
-            "user_submitted": True,
-            "paused": False,
-            "start_time": time.time()
-        }
+    preserved = {
+        "user_name": st.session_state.get("user_name", ""),
+        "user_email": st.session_state.get("user_email", ""),
+        "claim_index": st.session_state.get("claim_index", 0),
+        "user_submitted": True,
+        "paused": False,
+        "start_time": time.time()
+    } if preserve_user else {}
 
-    keys_to_clear = [
-        "sme_loss_cause", "sme_damage_items", "sme_place_occurrence",
-        "sme_triage", "sme_triage_reasoning", "sme_prevailing_document",
-        "sme_coverage_applicable", "sme_limit_applicable", "sme_reasoning",
-        "sme_claim_prediction", "sme_ai_error", "sme_notes"
+    # Clear SME input fields
+    fields = [
+        "sme_loss_cause", "sme_damage_items", "sme_place_occurrence", "sme_triage",
+        "sme_triage_reasoning", "sme_prevailing_document", "sme_coverage_applicable",
+        "sme_limit_applicable", "sme_reasoning", "sme_claim_prediction",
+        "sme_ai_error", "sme_notes"
     ]
-    for key in keys_to_clear:
-        st.session_state[key] = "" if "limit" not in key else 0.0
+    for key in fields:
         if "coverage" in key:
             st.session_state[key] = []
+        elif "limit" in key:
+            st.session_state[key] = 0.0
+        else:
+            st.session_state[key] = ""
 
-    for key, value in preserved_keys.items():
-        st.session_state[key] = value
+    for key, val in preserved.items():
+        st.session_state[key] = val
 
 # ---------- Initialize session state ----------
 for key in ["user_submitted", "claim_index", "start_time", "user_name", "user_email", "paused"]:
     if key not in st.session_state:
         st.session_state[key] = False if key in ["user_submitted", "paused"] else (0 if key == "claim_index" else "")
-
-if "reset_flag" in st.session_state and st.session_state.reset_flag:
-    reset_form_state()
-    st.session_state.reset_flag = False
 
 # ---------- Landing Page ----------
 if not st.session_state.user_submitted:
@@ -98,10 +85,10 @@ if not st.session_state.user_submitted:
         if email.lower() not in [e.lower() for e in ALLOWED_EMAILS]:
             st.error("🚫 Access denied. Your email is not authorized.")
             st.stop()
+
         st.session_state.user_name = name
         st.session_state.user_email = email
 
-        # Resume progress
         responses = pd.DataFrame(sheet.get_all_records())
         if not responses.empty:
             user_responses = responses[responses['Email'].str.lower() == email.lower()]
@@ -114,18 +101,18 @@ if not st.session_state.user_submitted:
         st.rerun()
     st.stop()
 
-# ---------- Pause check ----------
+# ---------- Resume Assessment ----------
 if st.session_state.paused:
     st.warning("🟡 Session paused. Click below to resume.")
     st.info(f"Assessment paused at claim {st.session_state.claim_index + 1}")
     if st.button("🟢 Resume Assessment"):
         st.session_state.paused = False
-        reset_form_state()
         st.session_state.claim_index += 1
+        reset_form_state()
         st.rerun()
     st.stop()
 
-# ---------- Prevent Claim Overflow ----------
+# ---------- Claim Overflow ----------
 if st.session_state.claim_index >= len(claims_df):
     st.success("🎉 All claims reviewed. You're a legend!")
     st.balloons()
@@ -139,22 +126,34 @@ st.markdown(f"### Claim {st.session_state.claim_index + 1} of {len(claims_df)}")
 progress = int((st.session_state.claim_index + 1) / len(claims_df) * 100)
 st.progress(progress, text=f"Progress: {progress}%")
 
+# ---------- Milestones ----------
+milestones = {
+    1: "🎉 First claim! You’re off to a great start!",
+    3: "🔄 Rule of three: You’re on a roll now!",
+    10: "🤘 Double digits already? Rock star!",
+    30: "🎯 Thirty and thriving!",
+    60: "🍕 Sixty claims? You deserve a raise!",
+    90: "🚀 Ninety! That’s commitment!",
+    120: "🏃‍♂️ Half marathon done—keep that pace!",
+    150: "🏅 Top 100? Nah, top 150 club!",
+    180: "🧠 Only 70 to go. You got this!",
+    210: "🏁 Final stretch!",
+    250: "🎉 ALL DONE! You’re a legend!"
+}
+if (idx := st.session_state.claim_index + 1) in milestones:
+    st.success(milestones[idx])
+
 # ---------- Claim Summary ----------
 st.subheader("📄 Claim Summary")
 st.markdown(f"**Claim Number:** `{claim['claim_number']}`")
 st.markdown(f"<span style='color:gold'>Loss Description:</span> {claim['loss_description']}", unsafe_allow_html=True)
-
 st.divider()
 
-# ---------- Form ----------
+# ---------- Assessment Form ----------
 with st.form("claim_form"):
     st.subheader("🩺 Triage")
     st.markdown(f"<span style='color:gold'>AI Loss Cause:</span> {claim['ai_loss_cause']}", unsafe_allow_html=True)
-    st.selectbox("SME Loss Cause", [
-        'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
-        'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
-        'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
-    ], key="sme_loss_cause")
+    st.selectbox("SME Loss Cause", [...], key="sme_loss_cause")
 
     st.markdown(f"<span style='color:gold'>AI Damage Items:</span> {claim['ai_damage_items']}", unsafe_allow_html=True)
     st.text_area("SME Damage Items", max_chars=108, key="sme_damage_items")
@@ -166,7 +165,7 @@ with st.form("claim_form"):
     st.selectbox("SME Triage", ['Enough information', 'More information needed'], key="sme_triage")
 
     st.markdown(f"<span style='color:gold'>AI Triage Reasoning:</span> {claim['ai_triage_reasoning']}", unsafe_allow_html=True)
-    st.text_area("SME Triage Reasoning", key="sme_triage_reasoning", min_height=80, max_chars=322)
+    st.text_area("SME Triage Reasoning", key="sme_triage_reasoning", height=120, max_chars=322)
 
     st.divider()
     st.subheader("📘 Claim Prediction")
@@ -176,10 +175,7 @@ with st.form("claim_form"):
     st.markdown(f"<span style='color:gold'>AI Section/Page Document:</span> {claim['ai_section_page_document']}", unsafe_allow_html=True)
 
     st.markdown(f"<span style='color:gold'>AI Coverage (applicable):</span> {claim['ai_coverage_applicable']}", unsafe_allow_html=True)
-    st.multiselect("SME Coverage (applicable)", [
-        'Advantage Elite', 'Coverage A: Dwelling', 'Coverage B: Other Structures',
-        'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
-    ], key="sme_coverage_applicable")
+    st.multiselect("SME Coverage (applicable)", [...], key="sme_coverage_applicable")
 
     st.markdown(f"<span style='color:gold'>AI Limit (applicable):</span> {claim['ai_limit_applicable']}", unsafe_allow_html=True)
     st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
@@ -188,17 +184,12 @@ with st.form("claim_form"):
     st.text_area("SME Reasoning", key="sme_reasoning", max_chars=1760)
 
     st.markdown(f"<span style='color:gold'>AI Claim Prediction:</span> {claim['ai_claim_prediction']}", unsafe_allow_html=True)
-    st.selectbox("SME Claim Prediction", [
-        'Covered - Fully', 'Covered - Likely',
-        'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
-    ], key="sme_claim_prediction")
+    st.selectbox("SME Claim Prediction", [...], key="sme_claim_prediction")
 
-    st.selectbox("SME AI Error", [
-        "", 'Claim Reasoning KO', 'Document Analysis KO',
-        'Dates Analysis KO', 'Automatic Extractions KO'
-    ], key="sme_ai_error")
+    st.selectbox("SME AI Error", ["", ...], key="sme_ai_error")
     st.text_area("SME Notes or Observations", key="sme_notes")
 
+    # --- Submit Area ---
     submit_action = st.radio("Choose your action:", ["Submit and Continue", "Submit and Pause"], horizontal=True)
     submitted = st.form_submit_button("Submit")
 
@@ -218,15 +209,10 @@ with st.form("claim_form"):
         ])
 
         if submit_action == "Submit and Continue":
-            if st.session_state.claim_index < len(claims_df) - 1:
-                st.session_state.claim_index += 1
-                reset_form_state()
-                st.rerun()
-            else:
-                st.balloons()
-                st.success("🎉 All claims reviewed. You’re a legend!")
-                st.stop()
-        elif submit_action == "Submit and Pause":
+            st.session_state.claim_index += 1
+            reset_form_state()
+            st.rerun()
+        else:
             st.session_state.paused = True
             reset_form_state()
             st.rerun()
@@ -235,5 +221,5 @@ with st.form("claim_form"):
 st.divider()
 st.markdown(f"### Claim {st.session_state.claim_index + 1} of {len(claims_df)}")
 st.progress(progress, text=f"Progress: {progress}%")
-if (idx := st.session_state.claim_index + 1) in milestones:
+if idx in milestones:
     st.success(milestones[idx])
