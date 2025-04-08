@@ -24,7 +24,6 @@ creds_dict = {
     "token_uri": st.secrets["gcp_service_account"]["token_uri"],
     "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
     "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"],
-    "universe_domain": st.secrets["gcp_service_account"].get("universe_domain", "googleapis.com")
 }
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 gclient = gspread.authorize(creds)
@@ -33,8 +32,9 @@ sheet = gclient.open("HLP_Responses").sheet1
 # ---------- Load and clean claims CSV ----------
 claims_df = pd.read_csv("Claims.csv", encoding="utf-8", sep=";")
 claims_df.columns = claims_df.columns.str.strip().str.lower().str.replace(" ", "_").str.replace("/", "_")
+idx = st.session_state.get("claim_index", 0)
 
-# ---------- Initialize session state ----------
+# ---------- Session Defaults ----------
 defaults = {
     "user_submitted": False,
     "claim_index": 0,
@@ -43,9 +43,9 @@ defaults = {
     "user_email": "",
     "paused": False,
 }
-for key, val in defaults.items():
-    if key not in st.session_state:
-        st.session_state[key] = val
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
 sme_keys = [
     "sme_loss_cause", "sme_damage_items", "sme_place_occurrence", "sme_triage",
@@ -54,7 +54,6 @@ sme_keys = [
     "sme_ai_error", "sme_notes"
 ]
 
-# ---------- Reset form inputs (deferred until rerun) ----------
 def queue_reset_form():
     st.session_state.reset_flag = True
 
@@ -69,7 +68,7 @@ def perform_reset():
     st.session_state.start_time = time.time()
     st.session_state.paused = False
 
-if "reset_flag" in st.session_state and st.session_state.reset_flag:
+if st.session_state.get("reset_flag", False):
     perform_reset()
     st.session_state.reset_flag = False
 
@@ -83,7 +82,6 @@ if not st.session_state.user_submitted:
 
     ⏱️ The timer starts when you begin reviewing each claim.
     """)
-
     name = st.text_input("Full Name")
     email = st.text_input("Email Address")
     start_button = st.button("🚀 Start Reviewing")
@@ -92,17 +90,14 @@ if not st.session_state.user_submitted:
         if email.lower() not in [e.lower() for e in ALLOWED_EMAILS]:
             st.error("🚫 Access denied. Your email is not authorized.")
             st.stop()
-
         st.session_state.user_name = name
         st.session_state.user_email = email
-
         responses = pd.DataFrame(sheet.get_all_records())
         if not responses.empty:
             user_responses = responses[responses['Email'].str.lower() == email.lower()]
             if not user_responses.empty:
                 st.session_state.claim_index = len(user_responses)
                 st.info(f"Resuming from claim {st.session_state.claim_index + 1}")
-
         st.session_state.user_submitted = True
         st.rerun()
     st.stop()
@@ -152,10 +147,13 @@ st.markdown(f"**Claim Number:** `{claim['claim_number']}`")
 st.markdown(f"**Loss Description:** {claim['loss_description']}")
 st.divider()
 
-# ---------- Helper for AI field display ----------
+# ---------- AI Box ----------
 def ai_box(label, value):
-    st.markdown(f"**{label}:**", unsafe_allow_html=True)
-    st.markdown(f"<div style='background-color:#f0f0f0; color:goldenrod; padding:8px; border-radius:4px'>{value}</div>", unsafe_allow_html=True)
+    st.markdown(f"**{label}:**")
+    st.markdown(
+        f"<div style='background-color:#f2f2f2; color:goldenrod; padding:8px; border-radius:4px'>{value}</div>",
+        unsafe_allow_html=True
+    )
 
 # ---------- Form ----------
 with st.form("claim_form"):
@@ -209,6 +207,7 @@ with st.form("claim_form"):
     st.selectbox("SME AI Error", [
         "", 'Claim Reasoning KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'
     ], key="sme_ai_error")
+
     st.text_area("SME Notes or Observations", key="sme_notes")
 
     submit_action = st.radio("Choose your action:", ["Submit and Continue", "Submit and Pause"], horizontal=True)
@@ -216,7 +215,6 @@ with st.form("claim_form"):
 
     if submitted:
         time_taken = round(time.time() - st.session_state.start_time, 2)
-
         sheet.append_row([
             st.session_state.user_name, st.session_state.user_email, claim["claim_number"],
             st.session_state.sme_loss_cause, st.session_state.sme_damage_items,
