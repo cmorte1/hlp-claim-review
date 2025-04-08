@@ -55,7 +55,6 @@ def perform_reset():
             st.session_state[key] = 0.0
         else:
             st.session_state[key] = ""
-
     st.session_state.start_time = time.time()
     st.session_state.paused = False
 
@@ -69,7 +68,7 @@ if not st.session_state.user_submitted:
     st.markdown("""
     Welcome to the HLP assessment tool!  
     You'll review **one claim at a time**, complete a short form, and provide your expert input.  
-    Each entry will be timed to evaluate review speed and agreement levels, **but please don't rush**, take the necessary time to properly review each claim.
+    Each entry will be timed to evaluate review speed and agreement levels, **but please don't rush**, take the necessary time to properly review each claim.  
 
     ⏱️ The timer starts when you begin reviewing each claim.
     """)
@@ -139,51 +138,58 @@ if idx in milestones:
 # ---------- Claim Summary ----------
 st.subheader("📄 Claim Summary")
 st.markdown(f"**Claim Number:** `{claim['claim_number']}`")
-st.markdown(f"<span style='color:gold'>Loss Description:</span> {claim['loss_description']}", unsafe_allow_html=True)
+st.markdown(f"**Loss Description:** {claim['loss_description']}")
 st.divider()
+
+# ---------- Helper for AI field display ----------
+def ai_box(label, value):
+    st.markdown(f"**{label}:**", unsafe_allow_html=True)
+    st.markdown(f"<div style='background-color:#f0f0f0; color:goldenrod; padding:8px; border-radius:4px'>{value}</div>", unsafe_allow_html=True)
 
 # ---------- Form ----------
 with st.form("claim_form"):
-    st.subheader("🩺 Triage")
-    st.markdown(f"<span style='color:gold'>AI Loss Cause:</span> {claim['ai_loss_cause']}", unsafe_allow_html=True)
+    st.subheader("📝 Triage")
+
+    ai_box("AI Loss Cause", claim['ai_loss_cause'])
     st.selectbox("SME Loss Cause", [
         'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
         'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
         'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
     ], key="sme_loss_cause")
 
-    st.markdown(f"<span style='color:gold'>AI Damage Items:</span> {claim['ai_damage_items']}", unsafe_allow_html=True)
+    ai_box("AI Damage Items", claim['ai_damage_items'])
     st.text_area("SME Damage Items", max_chars=108, key="sme_damage_items")
 
-    st.markdown(f"<span style='color:gold'>AI Place of Occurrence:</span> {claim['ai_place_of_occurrence']}", unsafe_allow_html=True)
+    ai_box("AI Place of Occurrence", claim['ai_place_of_occurrence'])
     st.text_area("SME Place of Occurrence", max_chars=52, key="sme_place_occurrence")
 
-    st.markdown(f"<span style='color:gold'>AI Triage:</span> {claim['ai_triage']}", unsafe_allow_html=True)
+    ai_box("AI Triage", claim['ai_triage'])
     st.selectbox("SME Triage", ['Enough information', 'More information needed'], key="sme_triage")
 
-    st.markdown(f"<span style='color:gold'>AI Triage Reasoning:</span> {claim['ai_triage_reasoning']}", unsafe_allow_html=True)
+    ai_box("AI Triage Reasoning", claim['ai_triage_reasoning'])
     st.text_area("SME Triage Reasoning", key="sme_triage_reasoning", height=120, max_chars=322)
 
     st.divider()
     st.subheader("📘 Claim Prediction")
-    st.markdown(f"<span style='color:gold'>AI Prevailing Document:</span> {claim['ai_prevailing_document']}", unsafe_allow_html=True)
+
+    ai_box("AI Prevailing Document", claim['ai_prevailing_document'])
     st.selectbox("SME Prevailing Document", ['Policy', 'Endorsement'], key="sme_prevailing_document")
 
-    st.markdown(f"<span style='color:gold'>AI Section/Page Document:</span> {claim['ai_section_page_document']}", unsafe_allow_html=True)
+    ai_box("AI Section/Page Document", claim['ai_section_page_document'])
 
-    st.markdown(f"<span style='color:gold'>AI Coverage (applicable):</span> {claim['ai_coverage_applicable']}", unsafe_allow_html=True)
+    ai_box("AI Coverage (applicable)", claim['ai_coverage_(applicable)'])
     st.multiselect("SME Coverage (applicable)", [
         'Advantage Elite', 'Coverage A: Dwelling', 'Coverage B: Other Structures',
         'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
     ], key="sme_coverage_applicable")
 
-    st.markdown(f"<span style='color:gold'>AI Limit (applicable):</span> {claim['ai_limit_applicable']}", unsafe_allow_html=True)
+    ai_box("AI Limit (applicable)", claim['ai_limit_applicable'])
     st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
 
-    st.markdown(f"<span style='color:gold'>AI Reasoning:</span> {claim['ai_reasoning']}", unsafe_allow_html=True)
+    ai_box("AI Reasoning", claim['ai_reasoning'])
     st.text_area("SME Reasoning", key="sme_reasoning", max_chars=1760)
 
-    st.markdown(f"<span style='color:gold'>AI Claim Prediction:</span> {claim['ai_claim_prediction']}", unsafe_allow_html=True)
+    ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
     st.selectbox("SME Claim Prediction", [
         'Covered - Fully', 'Covered - Likely',
         'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
@@ -194,7 +200,6 @@ with st.form("claim_form"):
     ], key="sme_ai_error")
     st.text_area("SME Notes or Observations", key="sme_notes")
 
-    # Submission options
     submit_action = st.radio("Choose your action:", ["Submit and Continue", "Submit and Pause"], horizontal=True)
     submitted = st.form_submit_button("Submit")
 
@@ -224,6 +229,6 @@ with st.form("claim_form"):
 # ---------- Bottom Status ----------
 st.divider()
 st.markdown(f"### Claim {idx} of {len(claims_df)}")
-st.progress(progress, text=f"Progress: {progress}%")
+st.progress(int((idx) / len(claims_df) * 100), text=f"Progress: {int((idx) / len(claims_df) * 100)}%")
 if idx in milestones:
     st.success(milestones[idx])
