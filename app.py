@@ -194,7 +194,7 @@ with st.form("claim_form"):
         'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
     ], key="sme_coverage_applicable")
 
-    ai_box("AI Limit (applicable)", claim['ai_limit_applicable'])
+    ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
     st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
 
     ai_box("AI Reasoning", claim['ai_reasoning'])
