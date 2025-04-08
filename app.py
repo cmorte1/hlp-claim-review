@@ -44,13 +44,22 @@ claims_df.columns = (
 )
 
 # ---------- Reset form inputs ----------
-def reset_form_state():
-    st.session_state.clear()
-    st.session_state.user_submitted = True
-    st.session_state.user_name = st.session_state.get("user_name", "")
-    st.session_state.user_email = st.session_state.get("user_email", "")
-    st.session_state.claim_index = st.session_state.get("claim_index", 0)
-    st.session_state.start_time = time.time()
+def reset_form_state(preserve_user=True):
+    preserved_keys = {}
+    if preserve_user:
+        preserved_keys["user_name"] = st.session_state.get("user_name", "")
+        preserved_keys["user_email"] = st.session_state.get("user_email", "")
+        preserved_keys["claim_index"] = st.session_state.get("claim_index", 0)
+        preserved_keys["user_submitted"] = True
+
+    keys_to_remove = [key for key in st.session_state.keys() if key not in preserved_keys]
+    for key in keys_to_remove:
+        del st.session_state[key]
+
+    for key, value in preserved_keys.items():
+        st.session_state[key] = value
+
+    # Reset only form inputs
     st.session_state.triage = 'Enough information'
     st.session_state.loss_cause = 'Flood'
     st.session_state.coverage = []
