@@ -215,15 +215,37 @@ st.progress(progress, text=f"Progress: {progress}%")
 if (idx := st.session_state.claim_index + 1) in milestones:
     st.success(milestones[idx])
 
-# ---------- Action Buttons ----------
-st.divider()
-colA, colB = st.columns(2)
-with colA:
-    if st.button("✅ Submit and Continue"):
+# ---------- Assessment Form + Submission Buttons ----------
+with st.form("claim_form"):
+    st.subheader("📝 Your Assessment")
+
+    triage_options = ['Enough information', 'More information needed']
+    loss_cause_options = [
+        'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
+        'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
+        'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
+    ]
+    coverage_options = [
+        'Coverage A: Dwelling', 'Coverage B: Other Structures', 'Coverage C: Personal Property'
+    ]
+    init_determination_options = ['Covered', 'Not covered/excluded']
+
+    st.selectbox("Triage", triage_options, key="triage")
+    st.selectbox("Loss cause", loss_cause_options, key="loss_cause")
+    st.multiselect("Applicable coverage", coverage_options, key="coverage")
+    st.selectbox("Initial coverage determination", init_determination_options, key="init_determination")
+    st.number_input("Applicable limit ($)", min_value=0.0, step=1000.0, key="applicable_limit")
+    st.text_area("Damage items", key="damage_items")
+    st.text_area("Place of occurrence", key="place_occurrence")
+    st.text_area("Additional notes or observations", key="notes")
+
+    submit_continue = st.form_submit_button("✅ Submit and Continue")
+    submit_pause = st.form_submit_button("🟡 Submit and Pause")
+
+    if submit_continue or submit_pause:
         time_taken = round(time.time() - st.session_state.start_time, 2)
         st.session_state.start_time = time.time()
 
-        # ➤ First: Append to Google Sheet (current answers preserved)
         sheet.append_row([
             str(st.session_state.user_name),
             str(st.session_state.user_email),
@@ -239,39 +261,18 @@ with colA:
             str(st.session_state.notes),
             str(time_taken)
         ])
-        # ➤ Then reset + advance
-        if st.session_state.claim_index < len(claims_df) - 1:
-            st.session_state.claim_index += 1
+
+        if submit_continue:
+            if st.session_state.claim_index < len(claims_df) - 1:
+                st.session_state.claim_index += 1
+                reset_form_state()
+                st.rerun()
+            else:
+                st.balloons()
+                st.success("🎉 All claims reviewed. You’re a legend!")
+                st.stop()
+
+        elif submit_pause:
+            st.session_state.paused = True
             reset_form_state()
             st.rerun()
-        else:
-            st.balloons()
-            st.success("🎉 All claims reviewed. You’re a legend!")
-            st.stop()
-
-with colB:
-    if st.button("🟡 Submit and Pause"):
-        time_taken = round(time.time() - st.session_state.start_time, 2)
-        st.session_state.start_time = time.time()
-
-        # ➤ Save answers first
-        sheet.append_row([
-            str(st.session_state.user_name),
-            str(st.session_state.user_email),
-            str(claim["claim_number"]),
-            str(claim["policy_number"]),
-            str(st.session_state.triage),
-            str(st.session_state.loss_cause),
-            "; ".join([str(cov) for cov in st.session_state.coverage]),
-            str(st.session_state.init_determination),
-            str(st.session_state.applicable_limit),
-            str(st.session_state.damage_items),
-            str(st.session_state.place_occurrence),
-            str(st.session_state.notes),
-            str(time_taken)
-        ])
-
-        # ➤ Then pause and reset
-        st.session_state.paused = True
-        reset_form_state()
-        st.rerun()
