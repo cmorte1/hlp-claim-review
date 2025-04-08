@@ -21,7 +21,7 @@ sheet = gclient.open("HLP_Responses").sheet1
 
 # ---------- Load and clean claims CSV ----------
 claims_df = pd.read_csv("Claims.csv", encoding="utf-8", sep=";")
-claims_df.columns = claims_df.columns.str.strip().str.lower().str.replace(" ", "_")
+claims_df.columns = claims_df.columns.str.strip().str.lower().str.replace(" ", "_").str.replace("/", "_")
 
 # ---------- Initialize session state ----------
 defaults = {
