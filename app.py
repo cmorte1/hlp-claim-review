@@ -236,7 +236,7 @@ with st.form("claim_form"):
             st.session_state.claim_index += 1  # Important: advance to next claim
             st.session_state.paused = True     # Set pause flag
             st.rerun()                          # No reset now, reset happens after resume
-
+            
 # ---------- Bottom Status ----------
 st.divider()
 st.markdown(f"### Claim {idx} of {len(claims_df)}")
