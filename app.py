@@ -233,9 +233,10 @@ with st.form("claim_form"):
             queue_reset_form()
             st.rerun()
         elif submit_action == "Submit and Pause":
-            st.session_state.paused = True
-            queue_reset_form()
-            st.rerun()
+            st.session_state.claim_index += 1  # Important: advance to next claim
+            st.session_state.paused = True     # Set pause flag
+            st.rerun()                          # No reset now, reset happens after resume
+
 
 # ---------- Bottom Status ----------
 st.divider()
