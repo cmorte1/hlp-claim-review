@@ -54,7 +54,7 @@ def queue_reset_form():
 
 def perform_reset():
     st.session_state.sme_loss_cause = "Other"
-    st.session_state.sme_damage_items = ""
+    st.session_state.sme_damaged_items = ""
     st.session_state.sme_place_occurrence = ""
     st.session_state.sme_triage = "Enough information"
     st.session_state.sme_triage_reasoning = ""
@@ -165,8 +165,8 @@ with st.form("claim_form"):
         'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
     ], key="sme_loss_cause")
 
-    ai_box("AI Damage Items", claim['ai_damage_items'])
-    st.text_area("SME Damage Items", max_chars=108, key="sme_damage_items")
+    ai_box("AI Damaged Items", claim['ai_damaged_items'])
+    st.text_area("SME Damaged Items", max_chars=108, key="sme_damaged_items")
 
     ai_box("AI Place of Occurrence", claim['ai_place_of_occurrence'])
     st.text_area("SME Place of Occurrence", max_chars=52, key="sme_place_occurrence")
@@ -220,7 +220,7 @@ with st.form("claim_form"):
 
         sheet.append_row([
             st.session_state.user_name, st.session_state.user_email, claim["claim_number"],
-            st.session_state.sme_loss_cause, st.session_state.sme_damage_items,
+            st.session_state.sme_loss_cause, st.session_state.sme_damaged_items,
             st.session_state.sme_place_occurrence, st.session_state.sme_triage,
             st.session_state.sme_triage_reasoning, st.session_state.sme_prevailing_document,
             "; ".join(st.session_state.sme_coverage_applicable),
