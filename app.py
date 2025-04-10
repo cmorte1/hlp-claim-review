@@ -1,10 +1,10 @@
-
 # Human-Level Performance Claim Review App (Access-Controlled & Resumable)
 import streamlit as st
 import pandas as pd
 import time
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
 
 # ---------- Access Control List ----------
 ALLOWED_EMAILS = [
@@ -63,9 +63,8 @@ def perform_reset():
     st.session_state.sme_limit_applicable = 0.0
     st.session_state.sme_reasoning = ""
     st.session_state.sme_claim_prediction = "Covered - Fully"
-    st.session_state.sme_ai_error = ""
+    st.session_state.sme_ai_error = []  # Updated for multiselect
     st.session_state.sme_notes = ""
-
     st.session_state.start_time = time.time()
     st.session_state.paused = False
 
@@ -112,8 +111,8 @@ if st.session_state.paused:
     st.warning("🟡 Session paused. Click below to resume.")
     if st.button("🟢 Resume Assessment"):
         st.session_state.paused = False
-        st.session_state.claim_index += 1
         queue_reset_form()
+        st.session_state.claim_index += 1
         st.rerun()
     st.stop()
 
@@ -206,8 +205,8 @@ with st.form("claim_form"):
         'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
     ], key="sme_claim_prediction")
 
-    st.selectbox("SME AI Error", [
-        "", 'Claim Reasoning KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'
+    st.multiselect("SME AI Error", [
+        'Claim Reasoning KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'
     ], key="sme_ai_error")
     st.text_area("SME Notes or Observations", key="sme_notes")
 
@@ -216,6 +215,7 @@ with st.form("claim_form"):
 
     if submitted:
         time_taken = round(time.time() - st.session_state.start_time, 2)
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         sheet.append_row([
             st.session_state.user_name, st.session_state.user_email, claim["claim_number"],
@@ -224,8 +224,8 @@ with st.form("claim_form"):
             st.session_state.sme_triage_reasoning, st.session_state.sme_prevailing_document,
             "; ".join(st.session_state.sme_coverage_applicable),
             st.session_state.sme_limit_applicable, st.session_state.sme_reasoning,
-            st.session_state.sme_claim_prediction, st.session_state.sme_ai_error,
-            st.session_state.sme_notes, time_taken
+            st.session_state.sme_claim_prediction, "; ".join(st.session_state.sme_ai_error),
+            st.session_state.sme_notes, time_taken, timestamp
         ])
 
         if submit_action == "Submit and Continue":
@@ -233,10 +233,10 @@ with st.form("claim_form"):
             queue_reset_form()
             st.rerun()
         elif submit_action == "Submit and Pause":
-            st.session_state.claim_index += 1  # Important: advance to next claim
-            st.session_state.paused = True     # Set pause flag
-            st.rerun()                          # No reset now, reset happens after resume
-            
+            st.session_state.paused = True
+            queue_reset_form()
+            st.rerun()
+
 # ---------- Bottom Status ----------
 st.divider()
 st.markdown(f"### Claim {idx} of {len(claims_df)}")
