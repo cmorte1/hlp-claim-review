@@ -54,7 +54,7 @@ def queue_reset_form():
 
 def perform_reset():
     st.session_state.sme_loss_cause = "Other"
-    st.session_state.sme_damage_items = ""
+    st.session_state.sme_damaged_items = ""
     st.session_state.sme_place_occurrence = ""
     st.session_state.sme_triage = "Enough information"
     st.session_state.sme_triage_reasoning = ""
@@ -63,8 +63,7 @@ def perform_reset():
     st.session_state.sme_limit_applicable = 0.0
     st.session_state.sme_reasoning = ""
     st.session_state.sme_claim_prediction = "Covered - Fully"
-    st.session_state.sme_ai_error = []  # Updated for multiselect
-    st.session_state.sme_notes = ""
+    st.session_state.sme_ai_error = []
     st.session_state.start_time = time.time()
     st.session_state.paused = False
 
@@ -167,8 +166,8 @@ with st.form("claim_form"):
         'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
     ], key="sme_loss_cause")
 
-    ai_box("AI Damage Items", claim['ai_damage_items'])
-    st.text_area("SME Damage Items", max_chars=108, key="sme_damage_items")
+    ai_box("AI Damaged Items", claim['ai_damaged_items'])
+    st.text_area("SME Damaged Items", max_chars=108, key="sme_damaged_items")
 
     ai_box("AI Place of Occurrence", claim['ai_place_of_occurrence'])
     st.text_area("SME Place of Occurrence", max_chars=52, key="sme_place_occurrence")
@@ -182,8 +181,10 @@ with st.form("claim_form"):
     st.divider()
     st.subheader("📘 Claim Prediction")
 
+    disabled_prediction = st.session_state.sme_triage == "More information needed"
+
     ai_box("AI Prevailing Document", claim['ai_prevailing_document'])
-    st.selectbox("SME Prevailing Document", ['Policy', 'Endorsement'], key="sme_prevailing_document")
+    st.selectbox("SME Prevailing Document", ['Policy', 'Endorsement'], key="sme_prevailing_document", disabled=disabled_prediction)
 
     ai_box("AI Section/Page Document", claim['ai_section_page_document'])
 
@@ -191,24 +192,23 @@ with st.form("claim_form"):
     st.multiselect("SME Coverage (applicable)", [
         'Advantage Elite', 'Coverage A: Dwelling', 'Coverage B: Other Structures',
         'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
-    ], key="sme_coverage_applicable")
+    ], key="sme_coverage_applicable", disabled=disabled_prediction)
 
     ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
-    st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
+    st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable", disabled=disabled_prediction)
 
     ai_box("AI Reasoning", claim['ai_reasoning'])
-    st.text_area("SME Reasoning", key="sme_reasoning", max_chars=1760)
+    st.text_area("SME Reasoning", key="sme_reasoning", max_chars=1760, disabled=disabled_prediction)
 
     ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
     st.selectbox("SME Claim Prediction", [
         'Covered - Fully', 'Covered - Likely',
         'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
-    ], key="sme_claim_prediction")
+    ], key="sme_claim_prediction", disabled=disabled_prediction)
 
     st.multiselect("SME AI Error", [
         'Claim Reasoning KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'
     ], key="sme_ai_error")
-    st.text_area("SME Notes or Observations", key="sme_notes")
 
     submit_action = st.radio("Choose your action:", ["Submit and Continue", "Submit and Pause"], horizontal=True)
     submitted = st.form_submit_button("Submit")
@@ -219,13 +219,13 @@ with st.form("claim_form"):
 
         sheet.append_row([
             st.session_state.user_name, st.session_state.user_email, claim["claim_number"],
-            st.session_state.sme_loss_cause, st.session_state.sme_damage_items,
+            st.session_state.sme_loss_cause, st.session_state.sme_damaged_items,
             st.session_state.sme_place_occurrence, st.session_state.sme_triage,
             st.session_state.sme_triage_reasoning, st.session_state.sme_prevailing_document,
             "; ".join(st.session_state.sme_coverage_applicable),
             st.session_state.sme_limit_applicable, st.session_state.sme_reasoning,
             st.session_state.sme_claim_prediction, "; ".join(st.session_state.sme_ai_error),
-            st.session_state.sme_notes, time_taken, timestamp
+            time_taken, timestamp
         ])
 
         if submit_action == "Submit and Continue":
@@ -233,10 +233,9 @@ with st.form("claim_form"):
             queue_reset_form()
             st.rerun()
         elif submit_action == "Submit and Pause":
-            st.session_state.claim_index += 0  # Important: advance to next claim
-            st.session_state.paused = True     # Set pause flag
-            st.rerun()                          # No reset now, reset happens after resume
-
+            st.session_state.claim_index += 0
+            st.session_state.paused = True
+            st.rerun()
 
 # ---------- Bottom Status ----------
 st.divider()
