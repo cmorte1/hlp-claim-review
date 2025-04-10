@@ -63,7 +63,8 @@ def perform_reset():
     st.session_state.sme_limit_applicable = 0.0
     st.session_state.sme_reasoning = ""
     st.session_state.sme_claim_prediction = "Covered - Fully"
-    st.session_state.sme_ai_error = []
+    st.session_state.sme_ai_error = []  # Updated for multiselect
+    st.session_state.sme_notes = ""
     st.session_state.start_time = time.time()
     st.session_state.paused = False
 
@@ -78,6 +79,7 @@ if not st.session_state.user_submitted:
     Welcome to the HLP assessment tool!  
     You'll review **one claim at a time**, complete a short form, and provide your expert input.  
     Each entry will be timed to evaluate review speed and agreement levels, **but please don't rush**, take the necessary time to properly review each claim.  
+
     ⏱️ The timer starts when you begin reviewing each claim.
     """)
 
@@ -180,11 +182,8 @@ with st.form("claim_form"):
     st.divider()
     st.subheader("📘 Claim Prediction")
 
-    disabled = st.session_state.sme_triage == "More information needed"
-
     ai_box("AI Prevailing Document", claim['ai_prevailing_document'])
-    st.selectbox("SME Prevailing Document", ['Policy', 'Endorsement'],
-                 key="sme_prevailing_document", disabled=disabled)
+    st.selectbox("SME Prevailing Document", ['Policy', 'Endorsement'], key="sme_prevailing_document")
 
     ai_box("AI Section/Page Document", claim['ai_section_page_document'])
 
@@ -192,24 +191,23 @@ with st.form("claim_form"):
     st.multiselect("SME Coverage (applicable)", [
         'Advantage Elite', 'Coverage A: Dwelling', 'Coverage B: Other Structures',
         'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
-    ], key="sme_coverage_applicable", disabled=disabled)
+    ], key="sme_coverage_applicable")
 
     ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
-    st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0,
-                    key="sme_limit_applicable", disabled=disabled)
+    st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
 
     ai_box("AI Reasoning", claim['ai_reasoning'])
-    st.text_area("SME Reasoning", key="sme_reasoning", max_chars=1760, disabled=disabled)
+    st.text_area("SME Reasoning", key="sme_reasoning", max_chars=1760)
 
     ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
     st.selectbox("SME Claim Prediction", [
         'Covered - Fully', 'Covered - Likely',
         'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
-    ], key="sme_claim_prediction", disabled=disabled)
+    ], key="sme_claim_prediction")
 
     st.multiselect("SME AI Error", [
         'Claim Reasoning KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'
-    ], key="sme_ai_error", disabled=disabled)
+    ], key="sme_ai_error")
 
     submit_action = st.radio("Choose your action:", ["Submit and Continue", "Submit and Pause"], horizontal=True)
     submitted = st.form_submit_button("Submit")
@@ -234,9 +232,10 @@ with st.form("claim_form"):
             queue_reset_form()
             st.rerun()
         elif submit_action == "Submit and Pause":
-            st.session_state.claim_index += 0
-            st.session_state.paused = True
-            st.rerun()
+            st.session_state.claim_index += 0  # Important: advance to next claim
+            st.session_state.paused = True     # Set pause flag
+            st.rerun()                          # No reset now, reset happens after resume
+
 
 # ---------- Bottom Status ----------
 st.divider()
