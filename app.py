@@ -54,7 +54,7 @@ def queue_reset_form():
 
 def perform_reset():
     st.session_state.sme_loss_cause = "Other"
-    st.session_state.sme_damaged_items = ""
+    st.session_state.sme_damage_items = ""
     st.session_state.sme_place_occurrence = ""
     st.session_state.sme_triage = "Enough information"
     st.session_state.sme_triage_reasoning = ""
@@ -78,7 +78,6 @@ if not st.session_state.user_submitted:
     Welcome to the HLP assessment tool!  
     You'll review **one claim at a time**, complete a short form, and provide your expert input.  
     Each entry will be timed to evaluate review speed and agreement levels, **but please don't rush**, take the necessary time to properly review each claim.  
-
     ⏱️ The timer starts when you begin reviewing each claim.
     """)
 
@@ -146,7 +145,7 @@ if idx in milestones:
 
 # ---------- Claim Summary ----------
 st.subheader("📄 Claim Summary")
-st.markdown(f"**Claim Number:** `{claim['claim_number']}`")
+st.markdown(f"**Claim Number:** {claim['claim_number']}")
 st.markdown(f"**Loss Description:** {claim['loss_description']}")
 st.divider()
 
@@ -166,8 +165,8 @@ with st.form("claim_form"):
         'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
     ], key="sme_loss_cause")
 
-    ai_box("AI Damaged Items", claim['ai_damaged_items'])
-    st.text_area("SME Damaged Items", max_chars=108, key="sme_damaged_items")
+    ai_box("AI Damage Items", claim['ai_damage_items'])
+    st.text_area("SME Damage Items", max_chars=108, key="sme_damage_items")
 
     ai_box("AI Place of Occurrence", claim['ai_place_of_occurrence'])
     st.text_area("SME Place of Occurrence", max_chars=52, key="sme_place_occurrence")
@@ -181,10 +180,11 @@ with st.form("claim_form"):
     st.divider()
     st.subheader("📘 Claim Prediction")
 
-    disabled_prediction = st.session_state.sme_triage == "More information needed"
+    disabled = st.session_state.sme_triage == "More information needed"
 
     ai_box("AI Prevailing Document", claim['ai_prevailing_document'])
-    st.selectbox("SME Prevailing Document", ['Policy', 'Endorsement'], key="sme_prevailing_document", disabled=disabled_prediction)
+    st.selectbox("SME Prevailing Document", ['Policy', 'Endorsement'],
+                 key="sme_prevailing_document", disabled=disabled)
 
     ai_box("AI Section/Page Document", claim['ai_section_page_document'])
 
@@ -192,23 +192,24 @@ with st.form("claim_form"):
     st.multiselect("SME Coverage (applicable)", [
         'Advantage Elite', 'Coverage A: Dwelling', 'Coverage B: Other Structures',
         'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
-    ], key="sme_coverage_applicable", disabled=disabled_prediction)
+    ], key="sme_coverage_applicable", disabled=disabled)
 
     ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
-    st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable", disabled=disabled_prediction)
+    st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0,
+                    key="sme_limit_applicable", disabled=disabled)
 
     ai_box("AI Reasoning", claim['ai_reasoning'])
-    st.text_area("SME Reasoning", key="sme_reasoning", max_chars=1760, disabled=disabled_prediction)
+    st.text_area("SME Reasoning", key="sme_reasoning", max_chars=1760, disabled=disabled)
 
     ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
     st.selectbox("SME Claim Prediction", [
         'Covered - Fully', 'Covered - Likely',
         'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
-    ], key="sme_claim_prediction", disabled=disabled_prediction)
+    ], key="sme_claim_prediction", disabled=disabled)
 
     st.multiselect("SME AI Error", [
         'Claim Reasoning KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'
-    ], key="sme_ai_error")
+    ], key="sme_ai_error", disabled=disabled)
 
     submit_action = st.radio("Choose your action:", ["Submit and Continue", "Submit and Pause"], horizontal=True)
     submitted = st.form_submit_button("Submit")
@@ -219,7 +220,7 @@ with st.form("claim_form"):
 
         sheet.append_row([
             st.session_state.user_name, st.session_state.user_email, claim["claim_number"],
-            st.session_state.sme_loss_cause, st.session_state.sme_damaged_items,
+            st.session_state.sme_loss_cause, st.session_state.sme_damage_items,
             st.session_state.sme_place_occurrence, st.session_state.sme_triage,
             st.session_state.sme_triage_reasoning, st.session_state.sme_prevailing_document,
             "; ".join(st.session_state.sme_coverage_applicable),
