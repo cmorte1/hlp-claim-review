@@ -99,9 +99,9 @@ if not st.session_state.user_submitted:
         if not responses.empty:
             user_responses = responses[responses['Email'].str.lower() == email.lower()]
             if not user_responses.empty:
-                st.session_state.claim_index = len(user_responses)
+                reviewed_claims = user_responses["Claim Number"].dropna().unique()
+                st.session_state.claim_index = len(reviewed_claims)
                 st.info(f"Resuming from claim {st.session_state.claim_index + 1}")
-
         st.session_state.user_submitted = True
         st.rerun()
     st.stop()
