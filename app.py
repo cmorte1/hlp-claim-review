@@ -162,7 +162,7 @@ with st.form("claim_form"):
 
     ai_box("AI Loss Cause", claim['ai_loss_cause'])
     st.selectbox("SME Loss Cause", [
-        'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
+        'Choose an option', 'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
         'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
         'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
     ], key="sme_loss_cause", index=0)
@@ -174,7 +174,7 @@ with st.form("claim_form"):
     st.text_area("SME Place of Occurrence", max_chars=52, key="sme_place_occurrence")
 
     ai_box("AI Triage", claim['ai_triage'])
-    st.selectbox("SME Triage", ['Enough information', 'More information needed'], key="sme_triage", index=0)
+    st.selectbox("SME Triage", ['Choose an option', 'Enough information', 'More information needed'], key="sme_triage", index=0)
 
     ai_box("AI Triage Reasoning", claim['ai_triage_reasoning'])
     st.text_area("SME Triage Reasoning", key="sme_triage_reasoning", height=120, max_chars=322)
@@ -183,7 +183,7 @@ with st.form("claim_form"):
     st.subheader("📘 Claim Prediction")
 
     ai_box("AI Prevailing Document", claim['ai_prevailing_document'])
-    st.selectbox("SME Prevailing Document", ['Policy', 'Endorsement'], key="sme_prevailing_document", index=0)
+    st.selectbox("SME Prevailing Document", ['Choose an option', 'Policy', 'Endorsement'], key="sme_prevailing_document", index=0)
 
     ai_box("AI Section/Page Document", claim['ai_section_page_document'])
 
@@ -201,7 +201,7 @@ with st.form("claim_form"):
 
     ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
     st.selectbox("SME Claim Prediction", [
-        'Covered - Fully', 'Covered - Likely',
+        'Choose an option', 'Covered - Fully', 'Covered - Likely',
         'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
     ], key="sme_claim_prediction", index=0)
 
