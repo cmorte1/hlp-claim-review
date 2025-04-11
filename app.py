@@ -213,8 +213,7 @@ with st.form("claim_form"):
         ],
         key="sme_coverage_applicable",
         help="• Based on the LOSS DESCRIPTION\n\n"
-            "• And in the document that, according to the adjuster's criteria, applies to the claim, \n\n"
-            "the SME will select the coverage that applies from the following list.\n\n"
+            "• And in the document that, according to the adjuster's criteria, applies to the claim, the SME will select the coverage that applies from the following list.\n\n"
             "• The selection can be multiple."
     )
 
@@ -227,15 +226,26 @@ with st.form("claim_form"):
         key="sme_reasoning",
         max_chars=1760,
         help="Based on the LOSS DESCRIPTION + PREVAILING DOCUMENT the SME explains:\n\n"
-            "why he/she considers the claim is covered\n\n"
-            " why he/she considers the claim is not covered/excluded."
+            "• why he/she considers the claim is covered\n\n"
+            "• why he/she considers the claim is not covered/excluded."
     )
 
     ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
-    st.selectbox("SME Claim Prediction", [
-        'Choose an option:', 'Covered - Fully', 'Covered - Likely',
-        'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
-    ], key="sme_claim_prediction", index=0)
+    st.selectbox(
+        "SME Claim Prediction",
+        [
+            'Choose an option:', 'Covered - Fully', 'Covered - Likely',
+            'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
+        ],
+        key="sme_claim_prediction",
+        index=0,
+        help="COVERED:\n"
+            "- The SME will use FULLY if there is no doubt about the coverage\n"
+            "- The SME will use LIKELY when additional information is needed to confirm coverage.\n"
+            "NOT COVERED/EXCLUDED:\n"
+            "- The SME will use FULLY if there is no doubt about the exclusion\n"
+            "- The SME will use LIKELY when additional information is needed to confirm exclusion."
+    )
 
     st.multiselect("SME AI Error", [
         'Claim Reasoning KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'
