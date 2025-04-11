@@ -207,10 +207,20 @@ with st.form("claim_form"):
     ai_box("AI Section/Page Document", claim['ai_section_page_document'])
 
     ai_box("AI Coverage (applicable)", claim['ai_coverage_(applicable)'])
-    st.multiselect("SME Coverage (applicable)", [
-        'Advantage Elite', 'Coverage A: Dwelling', 'Coverage B: Other Structures',
-        'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
-    ], key="sme_coverage_applicable")
+    st.multiselect(
+        "SME Coverage (applicable)",
+        [
+            'Advantage Elite', 'Coverage A: Dwelling', 'Coverage B: Other Structures',
+            'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
+        ],
+        key="sme_coverage_applicable",
+        help=(
+            "• Based on the LOSS DESCRIPTION\n"
+            "• And in the document that, according to the adjuster's criteria, applies to the claim, "
+            "the SME will select the coverage that applies from the following list.\n"
+            "• The selection can be multiple."
+        )
+    )
 
     ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
     st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
