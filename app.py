@@ -161,11 +161,14 @@ with st.form("claim_form"):
     st.subheader("📝 Triage")
 
     ai_box("AI Loss Cause", claim['ai_loss_cause'])
-    st.selectbox("SME Loss Cause", [
-        'Choose an option', 'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
-        'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
-        'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
-    ], key="sme_loss_cause", index=0)
+    loss_cause_options = [
+    'Choose an option', 'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
+    'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
+    'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
+    ]
+    sme_loss_cause = st.selectbox("SME Loss Cause", loss_cause_options, key="sme_loss_cause", index=0)
+    if sme_loss_cause == 'Choose an option':
+        st.markdown("<span style='color:gray; font-size: 0.9em;'>Please select a valid loss cause.</span>", unsafe_allow_html=True)
 
     ai_box("AI Damaged Items", claim['ai_damaged_items'])
     st.text_area("SME Damaged Items", max_chars=108, key="sme_damaged_items")
