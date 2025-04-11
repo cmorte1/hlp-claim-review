@@ -226,7 +226,16 @@ with st.form("claim_form"):
     st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
 
     ai_box("AI Reasoning", claim['ai_reasoning'])
-    st.text_area("SME Reasoning", key="sme_reasoning", max_chars=1760)
+    st.text_area(
+        "SME Reasoning",
+        key="sme_reasoning",
+        max_chars=1760,
+        help=(
+            "Based on the LOSS DESCRIPTION + PREVAILING DOCUMENT the SME explains:\n"
+            "why he/she considers the claim is covered\n"
+            " why he/she considers the claim is not covered/excluded."
+        )
+    )
 
     ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
     st.selectbox("SME Claim Prediction", [
