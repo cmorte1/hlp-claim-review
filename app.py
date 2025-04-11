@@ -53,16 +53,16 @@ def queue_reset_form():
     st.session_state.reset_flag = True
 
 def perform_reset():
-    st.session_state.sme_loss_cause = "Choose an option"
+    st.session_state.sme_loss_cause = "Choose an option:"
     st.session_state.sme_damaged_items = ""
     st.session_state.sme_place_occurrence = ""
-    st.session_state.sme_triage = "Choose an option"
+    st.session_state.sme_triage = "Choose an option:"
     st.session_state.sme_triage_reasoning = ""
-    st.session_state.sme_prevailing_document = "Choose an option"
+    st.session_state.sme_prevailing_document = "Choose an option:"
     st.session_state.sme_coverage_applicable = []
     st.session_state.sme_limit_applicable = 0.0
     st.session_state.sme_reasoning = ""
-    st.session_state.sme_claim_prediction = "Choose an option"
+    st.session_state.sme_claim_prediction = "Choose an option:"
     st.session_state.sme_ai_error = []  # Updated for multiselect
     st.session_state.sme_notes = ""
     st.session_state.start_time = time.time()
@@ -162,7 +162,7 @@ with st.form("claim_form"):
 
     ai_box("AI Loss Cause", claim['ai_loss_cause'])
     st.selectbox("SME Loss Cause", [
-        'Choose an option', 'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
+        'Choose an option:', 'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
         'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
         'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
     ], key="sme_loss_cause", index=0)
@@ -176,7 +176,7 @@ with st.form("claim_form"):
     ai_box("AI Triage", claim['ai_triage'])
     st.selectbox(
         "SME Triage",
-        ['Choose an option', 'Enough information', 'More information needed'],
+        ['Choose an option:', 'Enough information', 'More information needed'],
         key="sme_triage",
         index=0,
         help="**ENOUGH INFORMATION**: There is enough information in the description of the claim to move on to the analysis of the documents that may apply.\n\n"
@@ -186,13 +186,23 @@ with st.form("claim_form"):
     )
 
     ai_box("AI Triage Reasoning", claim['ai_triage_reasoning'])
-    st.text_area("SME Triage Reasoning", key="sme_triage_reasoning", height=120, max_chars=322)
+    st.text_area(
+        "SME Triage Reasoning",
+        key="sme_triage_reasoning",
+        height=120,
+        max_chars=322,
+        help=(
+            "Provide reasoning to support your triage decision:\n"
+            "• Why it considers there is not enough information to continue analyzing the claim, or\n"
+            "• Why it considers there is sufficient information to continue analyzing the claim through the applicable documents."
+        )
+    )
 
     st.divider()
     st.subheader("📘 Claim Prediction")
 
     ai_box("AI Prevailing Document", claim['ai_prevailing_document'])
-    st.selectbox("SME Prevailing Document", ['Choose an option', 'Policy', 'Endorsement'], key="sme_prevailing_document", index=0)
+    st.selectbox("SME Prevailing Document", ['Choose an option:', 'Policy', 'Endorsement'], key="sme_prevailing_document", index=0)
 
     ai_box("AI Section/Page Document", claim['ai_section_page_document'])
 
@@ -210,7 +220,7 @@ with st.form("claim_form"):
 
     ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
     st.selectbox("SME Claim Prediction", [
-        'Choose an option', 'Covered - Fully', 'Covered - Likely',
+        'Choose an option:', 'Covered - Fully', 'Covered - Likely',
         'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
     ], key="sme_claim_prediction", index=0)
 
