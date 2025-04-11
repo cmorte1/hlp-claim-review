@@ -180,7 +180,9 @@ with st.form("claim_form"):
         key="sme_triage",
         index=0,
         help="**ENOUGH INFORMATION**: There is enough information in the description of the claim to move on to the analysis of the documents that may apply.\n\n"
-            "**MORE INFORMATION NEEDED**: There is not enough information in the loss description to proceed to the analysis of applicable documents. The AI process ends at this point. The SME continues with the procedures manually."
+            "**MORE INFORMATION NEEDED**: There is not enough information in the loss description to proceed to the analysis of applicable documents. " \
+                "The AI process ends at this point." \
+                "The SME continues with the procedures manually."
     )
 
     ai_box("AI Triage Reasoning", claim['ai_triage_reasoning'])
