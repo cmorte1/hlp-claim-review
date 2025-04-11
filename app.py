@@ -174,14 +174,14 @@ with st.form("claim_form"):
     st.text_area("SME Place of Occurrence", max_chars=52, key="sme_place_occurrence")
 
     ai_box("AI Triage", claim['ai_triage'])
-    st.markdown(
-    '<span style="font-weight:600">SME Triage</span> '
-    '<span title="ENOUGH INFORMATION: There is enough information in the description of the claim to move on to the analysis of the documents that may apply.\n\n'
-    'MORE INFORMATION NEEDED: There is not enough information in the loss description to proceed to the analysis of applicable documents. The AI process ends at this point. The SME continues with the procedures manually.">ℹ️</span>',
-    unsafe_allow_html=True
+    st.selectbox(
+        "SME Triage",
+        ['Choose an option', 'Enough information', 'More information needed'],
+        key="sme_triage",
+        index=0,
+        help="**ENOUGH INFORMATION**: There is enough information in the description of the claim to move on to the analysis of the documents that may apply.\n\n"
+            "**MORE INFORMATION NEEDED**: There is not enough information in the loss description to proceed to the analysis of applicable documents. The AI process ends at this point. The SME continues with the procedures manually."
     )
-    st.selectbox("", ['Choose an option', 'Enough information', 'More information needed'], key="sme_triage", index=0)
-
 
     ai_box("AI Triage Reasoning", claim['ai_triage_reasoning'])
     st.text_area("SME Triage Reasoning", key="sme_triage_reasoning", height=120, max_chars=322)
