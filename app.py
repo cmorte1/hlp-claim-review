@@ -191,11 +191,9 @@ with st.form("claim_form"):
         key="sme_triage_reasoning",
         height=120,
         max_chars=322,
-        help=(
-            "Provide reasoning to support your triage decision:\n"
-            "• Why it considers there is not enough information to continue analyzing the claim, or\n"
+        help="Provide reasoning to support your triage decision:\n"
+            "• Why it considers there is not enough information to continue analyzing the claim, or\n\n"
             "• Why it considers there is sufficient information to continue analyzing the claim through the applicable documents."
-        )
     )
 
     st.divider()
@@ -214,12 +212,10 @@ with st.form("claim_form"):
             'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
         ],
         key="sme_coverage_applicable",
-        help=(
-            "• Based on the LOSS DESCRIPTION\n"
-            "• And in the document that, according to the adjuster's criteria, applies to the claim, "
-            "the SME will select the coverage that applies from the following list.\n"
+        help="• Based on the LOSS DESCRIPTION\n\n"
+            "• And in the document that, according to the adjuster's criteria, applies to the claim, \n\n"
+            "the SME will select the coverage that applies from the following list.\n\n"
             "• The selection can be multiple."
-        )
     )
 
     ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
@@ -230,11 +226,9 @@ with st.form("claim_form"):
         "SME Reasoning",
         key="sme_reasoning",
         max_chars=1760,
-        help=(
-            "Based on the LOSS DESCRIPTION + PREVAILING DOCUMENT the SME explains:\n"
-            "why he/she considers the claim is covered\n"
+        help="Based on the LOSS DESCRIPTION + PREVAILING DOCUMENT the SME explains:\n\n"
+            "why he/she considers the claim is covered\n\n"
             " why he/she considers the claim is not covered/excluded."
-        )
     )
 
     ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
