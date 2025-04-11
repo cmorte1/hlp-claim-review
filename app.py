@@ -53,16 +53,16 @@ def queue_reset_form():
     st.session_state.reset_flag = True
 
 def perform_reset():
-    st.session_state.sme_loss_cause = "Other"
+    st.session_state.sme_loss_cause = "Choose an option"
     st.session_state.sme_damaged_items = ""
     st.session_state.sme_place_occurrence = ""
-    st.session_state.sme_triage = "Enough information"
+    st.session_state.sme_triage = "Choose an option"
     st.session_state.sme_triage_reasoning = ""
-    st.session_state.sme_prevailing_document = "Policy"
+    st.session_state.sme_prevailing_document = "Choose an option"
     st.session_state.sme_coverage_applicable = []
     st.session_state.sme_limit_applicable = 0.0
     st.session_state.sme_reasoning = ""
-    st.session_state.sme_claim_prediction = "Covered - Fully"
+    st.session_state.sme_claim_prediction = "Choose an option"
     st.session_state.sme_ai_error = []  # Updated for multiselect
     st.session_state.sme_notes = ""
     st.session_state.start_time = time.time()
