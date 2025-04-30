@@ -6,7 +6,10 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import streamlit.components.v1 as components
-st.markdown('<a name="top"></a>', unsafe_allow_html=True)
+
+if st.session_state.get("scroll_to_top"):
+    components.html("""<script>window.scrollTo({top: 0, behavior: 'smooth'});</script>""", height=0)
+    st.session_state.scroll_to_top = False
 
 # ---------- Access Control List ----------
 ALLOWED_EMAILS = [
@@ -279,17 +282,13 @@ with st.form("claim_form"):
         if submit_action == "Submit and Continue":
             st.session_state.claim_index += 1
             queue_reset_form()
-            # st.query_params["scroll"] = "top"
-            # st.rerun()
-            st.markdown('<meta http-equiv="refresh" content="0;URL=#top">', unsafe_allow_html=True)
-            st.stop()
+            st.session_state.scroll_to_top = True
+            st.rerun()
         elif submit_action == "Submit and Pause":
             st.session_state.claim_index += 0
             st.session_state.paused = True
-            # st.query_params["scroll"] = "top"
-            # st.rerun()
-            st.markdown('<meta http-equiv="refresh" content="0;URL=#top">', unsafe_allow_html=True)
-            st.stop()
+            st.session_state.scroll_to_top = True
+            st.rerun()
             
 # ---------- Bottom Status ----------
 st.divider()
