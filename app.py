@@ -9,7 +9,7 @@ from datetime import datetime
 # ---------- Access Control List ----------
 ALLOWED_EMAILS = [
     'almodovar@mapfre.com', 'esgonza@mapfre.com', 'mchabot@mapfreusa.com', 'kmoon@mapfreusa.com',
-    'cortega@mapfreusa.com', 'cmorte1@mapfre.com'
+    'cortega@mapfreusa.com', 'mtangel@mapfre.com', 'cmorte1@mapfre.com'
 ]
 
 # ---------- Google Sheets Setup ----------
