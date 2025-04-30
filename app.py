@@ -6,6 +6,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import streamlit.components.v1 as components
+st.markdown('<a name="top"></a>', unsafe_allow_html=True)
 
 if st.query_params.get("scroll") == "top":
     components.html(
@@ -285,14 +286,18 @@ with st.form("claim_form"):
         if submit_action == "Submit and Continue":
             st.session_state.claim_index += 1
             queue_reset_form()
-            st.query_params["scroll"] = "top"
-            st.rerun()
+            # st.query_params["scroll"] = "top"
+            # st.rerun()
+            st.markdown('<meta http-equiv="refresh" content="0;URL=#top">', unsafe_allow_html=True)
+            st.stop()
         elif submit_action == "Submit and Pause":
             st.session_state.claim_index += 0
             st.session_state.paused = True
-            st.query_params["scroll"] = "top"
-            st.rerun()
-
+            # st.query_params["scroll"] = "top"
+            # st.rerun()
+            st.markdown('<meta http-equiv="refresh" content="0;URL=#top">', unsafe_allow_html=True)
+            st.stop()
+            
 # ---------- Bottom Status ----------
 st.divider()
 st.markdown(f"### Claim {idx} of {len(claims_df)}")
