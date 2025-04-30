@@ -282,14 +282,14 @@ with st.form("claim_form"):
         if submit_action == "Submit and Continue":
             st.session_state.claim_index += 1
             queue_reset_form()
-            st.session_state.scroll_to_top_pending = True
             st.rerun()
             #st.experimental_rerun()
+            st.session_state.scroll_to_top_pending = True
         elif submit_action == "Submit and Pause":
             st.session_state.claim_index += 0
             st.session_state.paused = True
-            st.session_state.scroll_to_top_pending = True
             st.rerun()
+            st.session_state.scroll_to_top_pending = True
             #st.experimental_rerun()
             
 # ---------- Bottom Status ----------
