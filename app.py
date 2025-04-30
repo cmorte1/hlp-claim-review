@@ -5,6 +5,14 @@ import time
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
+import streamlit.components.v1 as components
+
+if st.experimental_get_query_params().get("scroll") == ["top"]:
+    components.html(
+        """<script>window.scrollTo(0, 0);</script>""",
+        height=0,
+    )
+    st.experimental_set_query_params()  # Clear param after scrolling
 
 # ---------- Access Control List ----------
 ALLOWED_EMAILS = [
@@ -136,7 +144,7 @@ milestones = {
     3: "🔄 Rule of three: You’re on a roll now!",
     10: "🤘 Double digits already? Rock star!",
     30: "🎯 Thirty and thriving!",
-    50: "🍕 Sixty claims? You deserve a raise!",
+    50: "🍕 Fifty claims? You deserve a raise!",
     90: "🚀 Ninety! That’s commitment!",
     120: "🏃‍♂️ Half marathon done—keep that pace!",
     150: "🏅 Top 100? Nah, top 150 club!",
@@ -277,12 +285,13 @@ with st.form("claim_form"):
         if submit_action == "Submit and Continue":
             st.session_state.claim_index += 1
             queue_reset_form()
+            st.experimental_set_query_params(scroll="top")
             st.rerun()
         elif submit_action == "Submit and Pause":
-            st.session_state.claim_index += 0  # Important: advance to next claim
-            st.session_state.paused = True     # Set pause flag
-            st.rerun()                          # No reset now, reset happens after resume
-
+            st.session_state.claim_index += 0
+            st.session_state.paused = True
+            st.experimental_set_query_params(scroll="top")
+            st.rerun()
 
 # ---------- Bottom Status ----------
 st.divider()
