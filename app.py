@@ -282,13 +282,15 @@ with st.form("claim_form"):
         if submit_action == "Submit and Continue":
             st.session_state.claim_index += 1
             queue_reset_form()
-            st.session_state.scroll_to_top = True
-            st.rerun()
+            st.session_state.scroll_to_top_pending = True
+            # st.rerun()
+            st.experimental_rerun()
         elif submit_action == "Submit and Pause":
             st.session_state.claim_index += 0
             st.session_state.paused = True
-            st.session_state.scroll_to_top = True
-            st.rerun()
+            st.session_state.scroll_to_top_pending = True
+            # st.rerun()
+            st.experimental_rerun()
             
 # ---------- Bottom Status ----------
 # st.divider()
@@ -303,17 +305,29 @@ st.progress(int((idx) / len(claims_df) * 100), text=f"Progress: {int((idx) / len
 if idx in milestones:
     st.success(milestones[idx])
 
+if "scroll_to_top_pending" not in st.session_state:
+    st.session_state.scroll_to_top_pending = False
 # ---------- Scroll to Top ----------
 # Run this last — after the page has finished rendering
-if st.session_state.get("scroll_to_top", False):
-    components.html(
-        """
+# if st.session_state.get("scroll_to_top", False):
+#     components.html(
+#         """
+#         <script>
+#         setTimeout(function() {
+#             window.scrollTo({ top: 0, behavior: 'smooth' });
+#         }, 100);
+#         </script>
+#         """,
+#         height=0
+#     )
+#     st.session_state.scroll_to_top = False
+
+if st.session_state.scroll_to_top_pending:
+    components.html("""
         <script>
-        setTimeout(function() {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 100);
+            setTimeout(function() {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 300); // Wait a bit for form rendering to complete
         </script>
-        """,
-        height=0
-    )
-    st.session_state.scroll_to_top = False
+    """, height=0)
+    st.session_state.scroll_to_top_pending = False
