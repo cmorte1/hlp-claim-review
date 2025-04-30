@@ -136,7 +136,7 @@ milestones = {
     3: "🔄 Rule of three: You’re on a roll now!",
     10: "🤘 Double digits already? Rock star!",
     30: "🎯 Thirty and thriving!",
-    60: "🍕 Sixty claims? You deserve a raise!",
+    50: "🍕 Sixty claims? You deserve a raise!",
     90: "🚀 Ninety! That’s commitment!",
     120: "🏃‍♂️ Half marathon done—keep that pace!",
     150: "🏅 Top 100? Nah, top 150 club!",
