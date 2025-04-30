@@ -7,12 +7,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import streamlit.components.v1 as components
 
-if st.experimental_get_query_params().get("scroll") == ["top"]:
+if st.query_params.get("scroll") == "top":
     components.html(
         """<script>window.scrollTo(0, 0);</script>""",
         height=0,
     )
-    st.experimental_set_query_params()  # Clear param after scrolling
+    st.query_params.clear()  # This clears all params, or use st.query_params.pop("scroll", None) to only clear "scroll"
 
 # ---------- Access Control List ----------
 ALLOWED_EMAILS = [
@@ -285,12 +285,12 @@ with st.form("claim_form"):
         if submit_action == "Submit and Continue":
             st.session_state.claim_index += 1
             queue_reset_form()
-            st.experimental_set_query_params(scroll="top")
+            st.query_params["scroll"] = "top"
             st.rerun()
         elif submit_action == "Submit and Pause":
             st.session_state.claim_index += 0
             st.session_state.paused = True
-            st.experimental_set_query_params(scroll="top")
+            st.query_params["scroll"] = "top"
             st.rerun()
 
 # ---------- Bottom Status ----------
