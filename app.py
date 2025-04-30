@@ -32,8 +32,13 @@ gclient = gspread.authorize(creds)
 sheet = gclient.open("HLP_Responses").sheet1
 
 # ---------- Load and clean claims CSV ----------
-claims_df = pd.read_csv("Claims.csv", encoding="utf-8", sep=";")
-claims_df.columns = claims_df.columns.str.strip().str.lower().str.replace(" ", "_").str.replace("/", "_")
+@st.cache_data(ttl=0)
+def load_claims():
+    df = pd.read_csv("Claims.csv", encoding="utf-8", sep=";")
+    df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_").str.replace("/", "_")
+    return df
+
+claims_df = load_claims()
 
 # ---------- Initialize session state ----------
 defaults = {
