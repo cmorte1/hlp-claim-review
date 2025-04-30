@@ -8,13 +8,6 @@ from datetime import datetime
 import streamlit.components.v1 as components
 st.markdown('<a name="top"></a>', unsafe_allow_html=True)
 
-if st.query_params.get("scroll") == "top":
-    components.html(
-        """<script>window.scrollTo(0, 0);</script>""",
-        height=0,
-    )
-    st.query_params.clear()  # This clears all params, or use st.query_params.pop("scroll", None) to only clear "scroll"
-
 # ---------- Access Control List ----------
 ALLOWED_EMAILS = [
     'almodovar@mapfre.com', 'esgonza@mapfre.com', 'mchabot@mapfreusa.com', 'kmoon@mapfreusa.com',
