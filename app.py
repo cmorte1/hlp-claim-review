@@ -7,9 +7,9 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 import streamlit.components.v1 as components
 
-if st.session_state.get("scroll_to_top"):
-    components.html("""<script>window.scrollTo({top: 0, behavior: 'smooth'});</script>""", height=0)
-    st.session_state.scroll_to_top = False
+# if st.session_state.get("scroll_to_top"):
+#     components.html("""<script>window.scrollTo({top: 0, behavior: 'smooth'});</script>""", height=0)
+#     st.session_state.scroll_to_top = False
 
 # ---------- Access Control List ----------
 ALLOWED_EMAILS = [
@@ -291,8 +291,29 @@ with st.form("claim_form"):
             st.rerun()
             
 # ---------- Bottom Status ----------
+# st.divider()
+# st.markdown(f"### Claim {idx} of {len(claims_df)}")
+# st.progress(int((idx) / len(claims_df) * 100), text=f"Progress: {int((idx) / len(claims_df) * 100)}%")
+# if idx in milestones:
+#     st.success(milestones[idx])
+# ---------- Bottom Status ----------
 st.divider()
 st.markdown(f"### Claim {idx} of {len(claims_df)}")
 st.progress(int((idx) / len(claims_df) * 100), text=f"Progress: {int((idx) / len(claims_df) * 100)}%")
 if idx in milestones:
     st.success(milestones[idx])
+
+# ---------- Scroll to Top ----------
+# Run this last — after the page has finished rendering
+if st.session_state.get("scroll_to_top", False):
+    components.html(
+        """
+        <script>
+        setTimeout(function() {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+        </script>
+        """,
+        height=0
+    )
+    st.session_state.scroll_to_top = False
