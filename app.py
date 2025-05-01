@@ -227,8 +227,22 @@ with st.form("claim_form"):
             "• The selection can be multiple."
     )
 
+    # ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
+    # st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
+        # ---------- Form ----------
+    with st.form("claim_form"):
+        # ... all your inputs EXCEPT limit ...
+        submit_action = st.radio("Choose your action:", ["Submit and Continue", "Submit and Pause"], horizontal=True)
+        submitted = st.form_submit_button("Submit")
+
+    # Handle SME Limit (outside the form)
     ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
-    st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable",  disabled=True)
+    st.session_state.sme_limit_applicable = st.number_input(
+        "SME Limit (applicable)",
+        min_value=0.0,
+        step=1000.0,
+        key="sme_limit_applicable"
+    )
 
     ai_box("AI Reasoning", claim['ai_reasoning'])
     st.text_area(
