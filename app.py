@@ -227,14 +227,21 @@ with st.form("claim_form"):
             "• The selection can be multiple."
     )
 
+    # ---------- SME Limit (applicable) ----------
     ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
-    # st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
-    sme_limit_raw = st.text_input("SME Limit (applicable)", value=str(st.session_state.sme_limit_applicable))
+
+    # Initialize if missing
+    if "sme_limit_applicable" not in st.session_state:
+        st.session_state.sme_limit_applicable = 0.0
+
+    # Input as text (to prevent Enter from submitting form)
+    sme_limit_raw = st.text_input("SME Limit (applicable)", value=str(st.session_state.sme_limit_applicable), key="sme_limit_raw")
+
+    # Try converting to float
     try:
         st.session_state.sme_limit_applicable = float(sme_limit_raw)
     except ValueError:
         st.warning("Please enter a valid number for SME Limit (applicable).")
-
 
     ai_box("AI Reasoning", claim['ai_reasoning'])
     st.text_area(
