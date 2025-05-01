@@ -223,7 +223,7 @@ with st.form("claim_form"):
     )
 
     ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
-    st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable", disabled=True)
+    st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
 
     ai_box("AI Reasoning", claim['ai_reasoning'])
     st.text_area(
