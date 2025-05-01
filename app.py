@@ -1,10 +1,10 @@
+# Human-Level Performance Claim Review App (Access-Controlled & Resumable)
 import streamlit as st
 import pandas as pd
 import time
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
-import streamlit.components.v1 as components
 
 # ---------- Access Control List ----------
 ALLOWED_EMAILS = [
@@ -48,7 +48,6 @@ defaults = {
     "user_name": "",
     "user_email": "",
     "paused": False,
-    "sme_limit_applicable": 0.0,
 }
 for key, val in defaults.items():
     if key not in st.session_state:
@@ -69,12 +68,12 @@ def perform_reset():
     st.session_state.sme_limit_applicable = 0.0
     st.session_state.sme_reasoning = ""
     st.session_state.sme_claim_prediction = "Choose an option:"
-    st.session_state.sme_ai_error = []
+    st.session_state.sme_ai_error = []  # Updated for multiselect
     st.session_state.sme_notes = ""
     st.session_state.start_time = time.time()
     st.session_state.paused = False
 
-if st.session_state.get("reset_flag"):
+if "reset_flag" in st.session_state and st.session_state.reset_flag:
     perform_reset()
     st.session_state.reset_flag = False
 
@@ -84,7 +83,9 @@ if not st.session_state.user_submitted:
     st.markdown("""
     Welcome to the HLP assessment tool!  
     You'll review **one claim at a time**, complete a short form, and provide your expert input.  
-    Each entry will be timed to evaluate review speed and agreement levels, **but please don't rush**, take the necessary time to properly review each claim.
+    Each entry will be timed to evaluate review speed and agreement levels, **but please don't rush**, take the necessary time to properly review each claim.  
+
+    ⏱️ The timer starts when you begin reviewing each claim.
     """)
 
     name = st.text_input("Name")
@@ -126,6 +127,7 @@ if st.session_state.claim_index >= len(claims_df):
     st.balloons()
     st.stop()
 
+# ---------- Claim ----------
 claim = claims_df.iloc[st.session_state.claim_index]
 
 # ---------- Milestones ----------
@@ -144,7 +146,7 @@ milestones = {
 }
 idx = st.session_state.claim_index + 1
 st.markdown(f"### Claim {idx} of {len(claims_df)}")
-st.progress(int(idx / len(claims_df) * 100), text=f"Progress: {int(idx / len(claims_df) * 100)}%")
+st.progress(int((idx) / len(claims_df) * 100), text=f"Progress: {int((idx) / len(claims_df) * 100)}%")
 if idx in milestones:
     st.success(milestones[idx])
 
@@ -154,7 +156,7 @@ st.markdown(f"**Claim Number:** {claim['claim_number']}")
 st.markdown(f"**Loss Description:** {claim['loss_description']}")
 st.divider()
 
-# ---------- Helper ----------
+# ---------- Helper for AI field display ----------
 def ai_box(label, value):
     st.markdown(f"**{label}:**", unsafe_allow_html=True)
     st.markdown(f"<div style='background-color:#f0f0f0; color:goldenrod; padding:8px; border-radius:4px'>{value}</div>", unsafe_allow_html=True)
@@ -164,7 +166,11 @@ with st.form("claim_form"):
     st.subheader("📝 Triage")
 
     ai_box("AI Loss Cause", claim['ai_loss_cause'])
-    st.selectbox("SME Loss Cause", [...], key="sme_loss_cause", index=0)
+    st.selectbox("SME Loss Cause", [
+        'Choose an option:', 'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
+        'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
+        'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
+    ], key="sme_loss_cause", index=0)
 
     ai_box("AI Damaged Items", claim['ai_damaged_items'])
     st.text_area("SME Damaged Items", max_chars=108, key="sme_damaged_items")
@@ -173,67 +179,114 @@ with st.form("claim_form"):
     st.text_area("SME Place of Occurrence", max_chars=52, key="sme_place_occurrence")
 
     ai_box("AI Triage", claim['ai_triage'])
-    st.selectbox("SME Triage", [...], key="sme_triage", index=0, help="...")
+    st.selectbox(
+        "SME Triage",
+        ['Choose an option:', 'Enough information', 'More information needed'],
+        key="sme_triage",
+        index=0,
+        help="**ENOUGH INFORMATION**: There is enough information in the description of the claim to move on to the analysis of the documents that may apply.\n\n"
+         "**MORE INFORMATION NEEDED**: There is not enough information in the loss description to proceed to the analysis of applicable documents.\n"
+         "   • AI process ends at this point.\n"
+         "   • The SME continues with the procedures manually."
+    )
 
     ai_box("AI Triage Reasoning", claim['ai_triage_reasoning'])
-    st.text_area("SME Triage Reasoning", key="sme_triage_reasoning", height=120, max_chars=322, help="...")
+    st.text_area(
+        "SME Triage Reasoning",
+        key="sme_triage_reasoning",
+        height=120,
+        max_chars=322,
+        help="Provide reasoning to support your triage decision:\n"
+            "• Why it considers there is not enough information to continue analyzing the claim, or\n\n"
+            "• Why it considers there is sufficient information to continue analyzing the claim through the applicable documents."
+    )
 
+    st.divider()
     st.subheader("📘 Claim Prediction")
+
     ai_box("AI Prevailing Document", claim['ai_prevailing_document'])
-    st.selectbox("SME Prevailing Document", [...], key="sme_prevailing_document", index=0)
+    st.selectbox("SME Prevailing Document", ['Choose an option:', 'Policy', 'Endorsement'], key="sme_prevailing_document", index=0)
 
     ai_box("AI Section/Page Document", claim['ai_section_page_document'])
 
     ai_box("AI Coverage (applicable)", claim['ai_coverage_(applicable)'])
-    st.multiselect("SME Coverage (applicable)", [...], key="sme_coverage_applicable", help="...")
+    st.multiselect(
+        "SME Coverage (applicable)",
+        [
+            'Advantage Elite', 'Coverage A: Dwelling', 'Coverage B: Other Structures',
+            'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
+        ],
+        key="sme_coverage_applicable",
+        help="• Based on the LOSS DESCRIPTION\n\n"
+            "• And in the document that, according to the adjuster's criteria, applies to the claim, the SME will select the coverage that applies from the following list.\n\n"
+            "• The selection can be multiple."
+    )
+
+    ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
+    st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable", disabled=True)
 
     ai_box("AI Reasoning", claim['ai_reasoning'])
-    st.text_area("SME Reasoning", key="sme_reasoning", max_chars=1760, help="...")
+    st.text_area(
+        "SME Reasoning",
+        key="sme_reasoning",
+        max_chars=1760,
+        help="Based on the LOSS DESCRIPTION + PREVAILING DOCUMENT the SME explains:\n\n"
+            "• why he/she considers the claim is covered\n\n"
+            "• why he/she considers the claim is not covered/excluded."
+    )
 
     ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
-    st.selectbox("SME Claim Prediction", [...], key="sme_claim_prediction", index=0, help="...")
+    st.selectbox(
+        "SME Claim Prediction",
+        [
+            'Choose an option:', 'Covered - Fully', 'Covered - Likely',
+            'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
+        ],
+        key="sme_claim_prediction",
+        index=0,
+        help="COVERED:\n"
+            "- The SME will use FULLY if there is no doubt about the coverage\n"
+            "- The SME will use LIKELY when additional information is needed to confirm coverage.\n"
+            "NOT COVERED/EXCLUDED:\n"
+            "- The SME will use FULLY if there is no doubt about the exclusion\n"
+            "- The SME will use LIKELY when additional information is needed to confirm exclusion."
+    )
 
-    st.multiselect("SME AI Error", [...], key="sme_ai_error")
+    st.multiselect("SME AI Error", [
+        'Claim Reasoning KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'
+    ], key="sme_ai_error")
 
     submit_action = st.radio("Choose your action:", ["Submit and Continue", "Submit and Pause"], horizontal=True)
     submitted = st.form_submit_button("Submit")
 
-# ---------- SME Limit OUTSIDE Form ----------
-ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
-st.session_state.sme_limit_applicable = st.number_input(
-    "SME Limit (applicable)",
-    min_value=0.0,
-    step=1000.0,
-    key="sme_limit_applicable"
-)
+    if submitted:
+        time_taken = round(time.time() - st.session_state.start_time, 2)
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-# ---------- Submission Handling ----------
-if submitted:
-    time_taken = round(time.time() - st.session_state.start_time, 2)
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        sheet.append_row([
+            st.session_state.user_name, st.session_state.user_email, claim["claim_number"],
+            st.session_state.sme_loss_cause, st.session_state.sme_damaged_items,
+            st.session_state.sme_place_occurrence, st.session_state.sme_triage,
+            st.session_state.sme_triage_reasoning, st.session_state.sme_prevailing_document,
+            "; ".join(st.session_state.sme_coverage_applicable),
+            st.session_state.sme_limit_applicable, st.session_state.sme_reasoning,
+            st.session_state.sme_claim_prediction, "; ".join(st.session_state.sme_ai_error),
+            time_taken, timestamp
+        ])
 
-    sheet.append_row([
-        st.session_state.user_name, st.session_state.user_email, claim["claim_number"],
-        st.session_state.sme_loss_cause, st.session_state.sme_damaged_items,
-        st.session_state.sme_place_occurrence, st.session_state.sme_triage,
-        st.session_state.sme_triage_reasoning, st.session_state.sme_prevailing_document,
-        "; ".join(st.session_state.sme_coverage_applicable),
-        st.session_state.sme_limit_applicable, st.session_state.sme_reasoning,
-        st.session_state.sme_claim_prediction, "; ".join(st.session_state.sme_ai_error),
-        time_taken, timestamp
-    ])
+        if submit_action == "Submit and Continue":
+            st.session_state.claim_index += 1
+            queue_reset_form()
+            st.rerun()
+        elif submit_action == "Submit and Pause":
+            st.session_state.claim_index += 0  # Important: advance to next claim
+            st.session_state.paused = True     # Set pause flag
+            st.rerun()                          # No reset now, reset happens after resume
 
-    if submit_action == "Submit and Continue":
-        st.session_state.claim_index += 1
-        queue_reset_form()
-        st.rerun()
-    elif submit_action == "Submit and Pause":
-        st.session_state.paused = True
-        st.rerun()
 
 # ---------- Bottom Status ----------
 st.divider()
 st.markdown(f"### Claim {idx} of {len(claims_df)}")
-st.progress(int((idx / len(claims_df)) * 100), text=f"Progress: {int((idx / len(claims_df)) * 100)}%")
+st.progress(int((idx) / len(claims_df) * 100), text=f"Progress: {int((idx) / len(claims_df) * 100)}%")
 if idx in milestones:
     st.success(milestones[idx])
