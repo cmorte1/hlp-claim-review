@@ -348,8 +348,7 @@ with st.form("claim_form"):
                 (responses['Claim Number'] == claim["claim_number"])
         if match.any():
             row_index = responses[match].index[0] + 2  # Sheets is 1-indexed, first row is header
-            sheet.delete_row(row_index)
-            sheet.insert_row(row, row_index)
+            sheet.update(f"A{row_index}:P{row_index}", [new_row])
         else:
             sheet.append_row(row)
 
