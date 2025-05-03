@@ -93,6 +93,16 @@ if "reset_flag" in st.session_state and st.session_state.reset_flag:
     perform_reset()
     st.session_state.reset_flag = False
 
+# ---------- Valid options for SME fields ----------
+VALID_COVERAGE_OPTIONS = [
+    'Advantage Elite', 'Coverage A: Dwelling', 'Coverage B: Other Structures',
+    'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
+]
+
+VALID_AI_ERRORS = [
+    'Claim Reasoning KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'
+]
+
 # ---------- Landing Page ----------
 if not st.session_state.user_submitted:
     st.title("\U0001F9E0 Human-Level Performance: Claim Review App")
@@ -192,11 +202,17 @@ if prior is not None:
     st.session_state.sme_triage = prior.get('SME Triage', "Choose an option:")
     st.session_state.sme_triage_reasoning = prior.get('SME Triage Reasoning', "")
     st.session_state.sme_prevailing_document = prior.get('SME Prevailing Document', "Choose an option:")
-    st.session_state.sme_coverage_applicable = prior.get('SME Coverage (applicable)', "").split("; ")
+
+    raw_coverage = prior.get('SME Coverage (applicable)', "")
+    st.session_state.sme_coverage_applicable = [c for c in raw_coverage.split("; ") if c in VALID_COVERAGE_OPTIONS] if raw_coverage else []
+
     st.session_state.sme_limit_applicable = float(prior.get('SME Limit (applicable)', 0.0))
     st.session_state.sme_reasoning = prior.get('SME Reasoning', "")
     st.session_state.sme_claim_prediction = prior.get('SME Claim Prediction', "Choose an option:")
-    st.session_state.sme_ai_error = prior.get('SME AI Error', "").split("; ")
+
+    raw_ai_error = prior.get('SME AI Error', "")
+    st.session_state.sme_ai_error = [e for e in raw_ai_error.split("; ") if e in VALID_AI_ERRORS] if raw_ai_error else []
+
     st.session_state.time_spent_edit = float(prior.get('Time Spent (s)', 0.0))
     st.session_state.original_timestamp = prior.get('timestamp', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 else:
