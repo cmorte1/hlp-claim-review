@@ -173,10 +173,10 @@ with st.form("claim_form"):
     ], key="sme_loss_cause", index=0)
 
     ai_box("AI Damaged Items", claim['ai_damaged_items'])
-    st.text_area("SME Damaged Items", max_chars=108, key="sme_damaged_items")
+    st.text_area("SME Damaged Items", max_chars=2000, key="sme_damaged_items")
 
     ai_box("AI Place of Occurrence", claim['ai_place_of_occurrence'])
-    st.text_area("SME Place of Occurrence", max_chars=52, key="sme_place_occurrence")
+    st.text_area("SME Place of Occurrence", max_chars=2000, key="sme_place_occurrence")
 
     ai_box("AI Triage", claim['ai_triage'])
     st.selectbox(
@@ -195,7 +195,7 @@ with st.form("claim_form"):
         "SME Triage Reasoning",
         key="sme_triage_reasoning",
         height=120,
-        max_chars=322,
+        max_chars=2000,
         help="Provide reasoning to support your triage decision:\n"
             "• Why it considers there is not enough information to continue analyzing the claim, or\n\n"
             "• Why it considers there is sufficient information to continue analyzing the claim through the applicable documents."
@@ -229,7 +229,7 @@ with st.form("claim_form"):
     st.text_area(
         "SME Reasoning",
         key="sme_reasoning",
-        max_chars=1760,
+        max_chars=2000,
         help="Based on the LOSS DESCRIPTION + PREVAILING DOCUMENT the SME explains:\n\n"
             "• why he/she considers the claim is covered\n\n"
             "• why he/she considers the claim is not covered/excluded."
