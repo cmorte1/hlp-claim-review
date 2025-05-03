@@ -1,4 +1,4 @@
-# Human-Level Performance Claim Review App (Access-Controlled & Resumable)
+# Human-Level Performance Claim Review App (Access-Controlled & Resumable) with Edit Mode and Navigation
 import streamlit as st
 import pandas as pd
 import time
@@ -40,6 +40,22 @@ def load_claims():
 
 claims_df = load_claims()
 
+# ---------- Load responses and helper functions ----------
+@st.cache_data(ttl=0)
+def get_all_responses():
+    responses = pd.DataFrame(sheet.get_all_records())
+    return responses
+
+def get_user_responses(email):
+    responses = get_all_responses()
+    user_responses = responses[responses['Email'].str.lower() == email.lower()]
+    return user_responses
+
+def get_previous_answers(claim_number, user_email):
+    responses = get_user_responses(user_email)
+    row = responses[responses['Claim Number'] == claim_number]
+    return row.iloc[0] if not row.empty else None
+
 # ---------- Initialize session state ----------
 defaults = {
     "user_submitted": False,
@@ -68,7 +84,7 @@ def perform_reset():
     st.session_state.sme_limit_applicable = 0.0
     st.session_state.sme_reasoning = ""
     st.session_state.sme_claim_prediction = "Choose an option:"
-    st.session_state.sme_ai_error = []  # Updated for multiselect
+    st.session_state.sme_ai_error = []
     st.session_state.sme_notes = ""
     st.session_state.start_time = time.time()
     st.session_state.paused = False
@@ -79,7 +95,7 @@ if "reset_flag" in st.session_state and st.session_state.reset_flag:
 
 # ---------- Landing Page ----------
 if not st.session_state.user_submitted:
-    st.title("🧠 Human-Level Performance: Claim Review App")
+    st.title("\U0001F9E0 Human-Level Performance: Claim Review App")
     st.markdown("""
     Welcome to the HLP assessment tool!  
     You'll review **one claim at a time**, complete a short form, and provide your expert input.  
@@ -94,13 +110,13 @@ if not st.session_state.user_submitted:
 
     if start_button:
         if email.lower() not in [e.lower() for e in ALLOWED_EMAILS]:
-            st.error("🚫 Access denied. Your email is not authorized.")
+            st.error("❌ Access denied. Your email is not authorized.")
             st.stop()
 
         st.session_state.user_name = name
         st.session_state.user_email = email
 
-        responses = pd.DataFrame(sheet.get_all_records())
+        responses = get_all_responses()
         if not responses.empty:
             user_responses = responses[responses['Email'].str.lower() == email.lower()]
             if not user_responses.empty:
@@ -129,6 +145,7 @@ if st.session_state.claim_index >= len(claims_df):
 
 # ---------- Claim ----------
 claim = claims_df.iloc[st.session_state.claim_index]
+claim_number = claim['claim_number']
 
 # ---------- Milestones ----------
 milestones = {
@@ -149,6 +166,42 @@ st.markdown(f"### Claim {idx} of {len(claims_df)}")
 st.progress(int((idx) / len(claims_df) * 100), text=f"Progress: {int((idx) / len(claims_df) * 100)}%")
 if idx in milestones:
     st.success(milestones[idx])
+
+# ---------- Navigation ----------
+col1, col2 = st.columns([1, 1])
+with col1:
+    if st.session_state.claim_index > 0:
+        if st.button("⬅️ Previous"):
+            st.session_state.claim_index -= 1
+            queue_reset_form()
+            st.rerun()
+with col2:
+    if st.session_state.claim_index < len(claims_df) - 1:
+        if st.button("➡️ Next"):
+            st.session_state.claim_index += 1
+            queue_reset_form()
+            st.rerun()
+
+# ---------- Load Previous Answers If Any ----------
+prior = get_previous_answers(claim_number, st.session_state.user_email)
+if prior is not None:
+    st.info("This claim was already reviewed. You may update your answers.")
+    st.session_state.sme_loss_cause = prior.get('SME Loss Cause', "Choose an option:")
+    st.session_state.sme_damaged_items = prior.get('SME Damaged Items', "")
+    st.session_state.sme_place_occurrence = prior.get('SME Place of Occurrence', "")
+    st.session_state.sme_triage = prior.get('SME Triage', "Choose an option:")
+    st.session_state.sme_triage_reasoning = prior.get('SME Triage Reasoning', "")
+    st.session_state.sme_prevailing_document = prior.get('SME Prevailing Document', "Choose an option:")
+    st.session_state.sme_coverage_applicable = prior.get('SME Coverage (applicable)', "").split("; ")
+    st.session_state.sme_limit_applicable = float(prior.get('SME Limit (applicable)', 0.0))
+    st.session_state.sme_reasoning = prior.get('SME Reasoning', "")
+    st.session_state.sme_claim_prediction = prior.get('SME Claim Prediction', "Choose an option:")
+    st.session_state.sme_ai_error = prior.get('SME AI Error', "").split("; ")
+    st.session_state.time_spent_edit = float(prior.get('Time Spent (s)', 0.0))
+    st.session_state.original_timestamp = prior.get('timestamp', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+else:
+    st.session_state.time_spent_edit = None
+    st.session_state.original_timestamp = None
 
 # ---------- Claim Summary ----------
 st.subheader("📄 Claim Summary")
@@ -173,10 +226,10 @@ with st.form("claim_form"):
     ], key="sme_loss_cause", index=0)
 
     ai_box("AI Damaged Items", claim['ai_damaged_items'])
-    st.text_area("SME Damaged Items", max_chars=2000, key="sme_damaged_items")
+    st.text_area("SME Damaged Items", max_chars=5000, key="sme_damaged_items")
 
     ai_box("AI Place of Occurrence", claim['ai_place_of_occurrence'])
-    st.text_area("SME Place of Occurrence", max_chars=2000, key="sme_place_occurrence")
+    st.text_area("SME Place of Occurrence", max_chars=5000, key="sme_place_occurrence")
 
     ai_box("AI Triage", claim['ai_triage'])
     st.selectbox(
@@ -195,7 +248,7 @@ with st.form("claim_form"):
         "SME Triage Reasoning",
         key="sme_triage_reasoning",
         height=120,
-        max_chars=2000,
+        max_chars=5000,
         help="Provide reasoning to support your triage decision:\n"
             "• Why it considers there is not enough information to continue analyzing the claim, or\n\n"
             "• Why it considers there is sufficient information to continue analyzing the claim through the applicable documents."
@@ -229,7 +282,7 @@ with st.form("claim_form"):
     st.text_area(
         "SME Reasoning",
         key="sme_reasoning",
-        max_chars=2000,
+        max_chars=5000,
         help="Based on the LOSS DESCRIPTION + PREVAILING DOCUMENT the SME explains:\n\n"
             "• why he/she considers the claim is covered\n\n"
             "• why he/she considers the claim is not covered/excluded."
@@ -260,10 +313,10 @@ with st.form("claim_form"):
     submitted = st.form_submit_button("Submit")
 
     if submitted:
-        time_taken = round(time.time() - st.session_state.start_time, 2)
+        time_taken = st.session_state.time_spent_edit or round(time.time() - st.session_state.start_time, 2)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        sheet.append_row([
+        row = [
             st.session_state.user_name, st.session_state.user_email, claim["claim_number"],
             st.session_state.sme_loss_cause, st.session_state.sme_damaged_items,
             st.session_state.sme_place_occurrence, st.session_state.sme_triage,
@@ -272,16 +325,25 @@ with st.form("claim_form"):
             st.session_state.sme_limit_applicable, st.session_state.sme_reasoning,
             st.session_state.sme_claim_prediction, "; ".join(st.session_state.sme_ai_error),
             time_taken, timestamp
-        ])
+        ]
+
+        responses = get_all_responses()
+        match = (responses['Email'].str.lower() == st.session_state.user_email.lower()) & \
+                (responses['Claim Number'] == claim["claim_number"])
+        if match.any():
+            row_index = responses[match].index[0] + 2  # Sheets is 1-indexed, first row is header
+            sheet.delete_row(row_index)
+            sheet.insert_row(row, row_index)
+        else:
+            sheet.append_row(row)
 
         if submit_action == "Submit and Continue":
             st.session_state.claim_index += 1
             queue_reset_form()
             st.rerun()
         elif submit_action == "Submit and Pause":
-            st.session_state.claim_index += 0  # Important: advance to next claim
-            st.session_state.paused = True     # Set pause flag
-            st.rerun()                          # No reset now, reset happens after resume
+            st.session_state.paused = True
+            st.rerun()
 
 
 # ---------- Bottom Status ----------
