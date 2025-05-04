@@ -342,14 +342,15 @@ with st.form("claim_form"):
             st.session_state.sme_claim_prediction, "; ".join(st.session_state.sme_ai_error),
             time_taken, timestamp
         ]
-
+        # Force everything to be string-safe
+        row = [str(x) if x is not None else "" for x in row]
+    
         responses = get_all_responses()
         match = (responses['Email'].str.lower() == st.session_state.user_email.lower()) & \
                 (responses['Claim Number'] == claim["claim_number"])
         if match.any():
             row_index = responses[match].index[0] + 2  # Sheets is 1-indexed, first row is header
             sheet.update(f"A{row_index}:P{row_index}", [row])
-
         else:
             sheet.append_row(row)
 
