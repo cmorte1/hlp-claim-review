@@ -155,7 +155,7 @@ if st.session_state.claim_index >= len(claims_df):
 
 # ---------- Claim ----------
 claim = claims_df.iloc[st.session_state.claim_index]
-claim_number = claim['claim_number']
+claim_number = str(claim['claim_number'])
 
 # ---------- Milestones ----------
 milestones = {
@@ -331,9 +331,10 @@ with st.form("claim_form"):
     if submitted:
         time_taken = st.session_state.time_spent_edit or round(time.time() - st.session_state.start_time, 2)
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+        
+        claim_number = str(claim["claim_number"]) 
         row = [
-            st.session_state.user_name, st.session_state.user_email, claim["claim_number"],
+            st.session_state.user_name, st.session_state.user_email, claim_number,
             st.session_state.sme_loss_cause, st.session_state.sme_damaged_items,
             st.session_state.sme_place_occurrence, st.session_state.sme_triage,
             st.session_state.sme_triage_reasoning, st.session_state.sme_prevailing_document,
@@ -347,7 +348,7 @@ with st.form("claim_form"):
     
         responses = get_all_responses()
         match = (responses['Email'].str.lower() == st.session_state.user_email.lower()) & \
-                (responses['Claim Number'] == claim["claim_number"])
+                (responses['Claim Number'].astype(str) == claim_number)
         if match.any():
             row_index = responses[match].index[0] + 2  # Sheets is 1-indexed, first row is header
             sheet.update(f"A{row_index}:P{row_index}", [row])
