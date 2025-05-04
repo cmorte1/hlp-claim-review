@@ -235,23 +235,15 @@ with st.form("claim_form"):
     st.subheader("📝 Triage")
 
     ai_box("AI Loss Cause", claim['ai_loss_cause'])
-    # st.selectbox("SME Loss Cause", [
-    #     'Choose an option:', 'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
-    #     'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
-    #     'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
-    # ], key="sme_loss_cause", index=None)
     loss_cause_options = [
-    'Choose an option:', 'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
-    'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
-    'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
+        'Choose an option:', 'Flood', 'Freezing', 'Ice damage', 'Environment', 'Hurricane',
+        'Mold', 'Sewage backup', 'Snow/Ice', 'Water damage',
+        'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
     ]
-    st.selectbox(
-        "SME Loss Cause",
-        loss_cause_options,
-        key="sme_loss_cause",
-        index=loss_cause_options.index(st.session_state.sme_loss_cause)
-        if st.session_state.sme_loss_cause in loss_cause_options else 0
-    )
+    selected_loss_cause = st.session_state.get("sme_loss_cause", "Choose an option:")
+    st.selectbox("SME Loss Cause", loss_cause_options, key="sme_loss_cause",
+                 index=loss_cause_options.index(selected_loss_cause)
+                 if selected_loss_cause in loss_cause_options else 0)
 
     ai_box("AI Damaged Items", claim['ai_damaged_items'])
     st.text_area("SME Damaged Items", max_chars=5000, key="sme_damaged_items")
@@ -260,121 +252,67 @@ with st.form("claim_form"):
     st.text_area("SME Place of Occurrence", max_chars=5000, key="sme_place_occurrence")
 
     ai_box("AI Triage", claim['ai_triage'])
-    # st.selectbox(
-    #     "SME Triage",
-    #     ['Choose an option:', 'Enough information', 'More information needed'],
-    #     key="sme_triage",
-    #     index=None,
-    #     help="**ENOUGH INFORMATION**: There is enough information in the description of the claim to move on to the analysis of the documents that may apply.\n\n"
-    #      "**MORE INFORMATION NEEDED**: There is not enough information in the loss description to proceed to the analysis of applicable documents.\n"
-    #      "   • AI process ends at this point.\n"
-    #      "   • The SME continues with the procedures manually."
-    # )
     triage_options = ['Choose an option:', 'Enough information', 'More information needed']
-    st.selectbox(
-        "SME Triage",
-        triage_options,
-        key="sme_triage",
-        index=triage_options.index(st.session_state.sme_triage)
-        if st.session_state.sme_triage in triage_options else 0,
-        help="**ENOUGH INFORMATION**: There is enough information in the description of the claim to move on to the analysis of the documents that may apply.\n\n"
-         "**MORE INFORMATION NEEDED**: There is not enough information in the loss description to proceed to the analysis of applicable documents.\n"
-         "   • AI process ends at this point.\n"
-         "   • The SME continues with the procedures manually."
-    )
-
+    selected_triage = st.session_state.get("sme_triage", "Choose an option:")
+    st.selectbox("SME Triage", triage_options, key="sme_triage",
+                 index=triage_options.index(selected_triage)
+                 if selected_triage in triage_options else 0,
+                 help="**ENOUGH INFORMATION**: There is enough information in the description of the claim to move on to the analysis of the documents that may apply.\n\n"
+                      "**MORE INFORMATION NEEDED**: There is not enough information in the loss description to proceed to the analysis of applicable documents.\n"
+                      "   • AI process ends at this point.\n"
+                      "   • The SME continues with the procedures manually.")
 
     ai_box("AI Triage Reasoning", claim['ai_triage_reasoning'])
-    st.text_area(
-        "SME Triage Reasoning",
-        key="sme_triage_reasoning",
-        height=120,
-        max_chars=5000,
-        help="Provide reasoning to support your triage decision:\n"
-            "• Why it considers there is not enough information to continue analyzing the claim, or\n\n"
-            "• Why it considers there is sufficient information to continue analyzing the claim through the applicable documents."
-    )
+    st.text_area("SME Triage Reasoning", key="sme_triage_reasoning", height=120, max_chars=5000,
+                 help="Provide reasoning to support your triage decision:\n"
+                      "• Why it considers there is not enough information to continue analyzing the claim, or\n\n"
+                      "• Why it considers there is sufficient information to continue analyzing the claim through the applicable documents.")
 
     st.divider()
     st.subheader("📘 Claim Prediction")
 
     ai_box("AI Prevailing Document", claim['ai_prevailing_document'])
-    # st.selectbox("SME Prevailing Document", ['Choose an option:', 'Policy', 'Endorsement'], key="sme_prevailing_document", index=None)
     document_options = ['Choose an option:', 'Policy', 'Endorsement']
-    st.selectbox(
-        "SME Prevailing Document",
-        document_options,
-        key="sme_prevailing_document",
-        index=document_options.index(st.session_state.sme_prevailing_document)
-        if st.session_state.sme_prevailing_document in document_options else 0
-    )
-
+    selected_doc = st.session_state.get("sme_prevailing_document", "Choose an option:")
+    st.selectbox("SME Prevailing Document", document_options, key="sme_prevailing_document",
+                 index=document_options.index(selected_doc)
+                 if selected_doc in document_options else 0)
 
     ai_box("AI Section/Page Document", claim['ai_section_page_document'])
 
     ai_box("AI Coverage (applicable)", claim['ai_coverage_(applicable)'])
-    st.multiselect(
-        "SME Coverage (applicable)",
-        [
-            'Advantage Elite', 'Coverage A: Dwelling', 'Coverage B: Other Structures',
-            'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
-        ],
-        key="sme_coverage_applicable",
-        help="• Based on the LOSS DESCRIPTION\n\n"
-            "• And in the document that, according to the adjuster's criteria, applies to the claim, the SME will select the coverage that applies from the following list.\n\n"
-            "• The selection can be multiple."
-    )
+    st.multiselect("SME Coverage (applicable)", VALID_COVERAGE_OPTIONS,
+                   key="sme_coverage_applicable",
+                   help="• Based on the LOSS DESCRIPTION\n\n"
+                        "• And in the document that, according to the adjuster's criteria, applies to the claim, the SME will select the coverage that applies from the following list.\n\n"
+                        "• The selection can be multiple.")
 
     ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
     st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
 
     ai_box("AI Reasoning", claim['ai_reasoning'])
-    st.text_area(
-        "SME Reasoning",
-        key="sme_reasoning",
-        max_chars=5000,
-        help="Based on the LOSS DESCRIPTION + PREVAILING DOCUMENT the SME explains:\n\n"
-            "• why he/she considers the claim is covered\n\n"
-            "• why he/she considers the claim is not covered/excluded."
-    )
+    st.text_area("SME Reasoning", key="sme_reasoning", max_chars=5000,
+                 help="Based on the LOSS DESCRIPTION + PREVAILING DOCUMENT the SME explains:\n\n"
+                      "• why he/she considers the claim is covered\n\n"
+                      "• why he/she considers the claim is not covered/excluded.")
 
     ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
-    # st.selectbox(
-    #     "SME Claim Prediction",
-    #     [
-    #         'Choose an option:', 'Covered - Fully', 'Covered - Likely',
-    #         'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
-    #     ],
-    #     key="sme_claim_prediction",
-    #     index=None,
-    #     help="COVERED:\n"
-    #         "- The SME will use FULLY if there is no doubt about the coverage\n"
-    #         "- The SME will use LIKELY when additional information is needed to confirm coverage.\n"
-    #         "NOT COVERED/EXCLUDED:\n"
-    #         "- The SME will use FULLY if there is no doubt about the exclusion\n"
-    #         "- The SME will use LIKELY when additional information is needed to confirm exclusion."
-    # )
     prediction_options = [
         'Choose an option:', 'Covered - Fully', 'Covered - Likely',
         'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
     ]
-    st.selectbox(
-        "SME Claim Prediction",
-        prediction_options,
-        key="sme_claim_prediction",
-        index=prediction_options.index(st.session_state.sme_claim_prediction)
-        if st.session_state.sme_claim_prediction in prediction_options else 0,
-        help="COVERED:\n"
-            "- The SME will use FULLY if there is no doubt about the coverage\n"
-            "- The SME will use LIKELY when additional information is needed to confirm coverage.\n"
-            "NOT COVERED/EXCLUDED:\n"
-            "- The SME will use FULLY if there is no doubt about the exclusion\n"
-            "- The SME will use LIKELY when additional information is needed to confirm exclusion."
-    )
+    selected_prediction = st.session_state.get("sme_claim_prediction", "Choose an option:")
+    st.selectbox("SME Claim Prediction", prediction_options, key="sme_claim_prediction",
+                 index=prediction_options.index(selected_prediction)
+                 if selected_prediction in prediction_options else 0,
+                 help="COVERED:\n"
+                      "- The SME will use FULLY if there is no doubt about the coverage\n"
+                      "- The SME will use LIKELY when additional information is needed to confirm coverage.\n"
+                      "NOT COVERED/EXCLUDED:\n"
+                      "- The SME will use FULLY if there is no doubt about the exclusion\n"
+                      "- The SME will use LIKELY when additional information is needed to confirm exclusion.")
 
-    st.multiselect("SME AI Error", [
-        'Claim Reasoning KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'
-    ], key="sme_ai_error")
+    st.multiselect("SME AI Error", VALID_AI_ERRORS, key="sme_ai_error")
 
     submit_action = st.radio("Choose your action:", ["Submit and Continue", "Submit and Pause"], horizontal=True)
     submitted = st.form_submit_button("Submit")
