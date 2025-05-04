@@ -52,8 +52,9 @@ def get_user_responses(email):
     return user_responses
 
 def get_previous_answers(claim_number, user_email):
-    responses = get_user_responses(user_email)
-    row = responses[responses['Claim Number'] == claim_number]
+    responses = get_all_responses()
+    row = responses[responses['Email'].str.lower() == user_email.lower()]
+    row = row[row['Claim Number'].astype(str) == str(claim_number)]
     return row.iloc[0] if not row.empty else None
 
 # ---------- Initialize session state ----------
@@ -149,7 +150,7 @@ if st.session_state.paused:
 
 # ---------- Prevent Claim Overflow ----------
 if st.session_state.claim_index >= len(claims_df):
-    st.success("🎉 All claims reviewed. You’re a legend!")
+    st.success("🎉 All claims reviewed. You're a legend!")
     st.balloons()
     st.stop()
 
@@ -159,17 +160,17 @@ claim_number = str(claim['claim_number'])
 
 # ---------- Milestones ----------
 milestones = {
-    1: "🎉 First claim! You’re off to a great start!",
-    3: "🔄 Rule of three: You’re on a roll now!",
+    1: "🎉 First claim! You're off to a great start!",
+    3: "🔄 Rule of three: You're on a roll now!",
     10: "🤘 Double digits already? Rock star!",
     30: "🎯 Thirty and thriving!",
     50: "🍕 Fifty claims? You deserve a raise!",
-    90: "🚀 Ninety! That’s commitment!",
+    90: "🚀 Ninety! That's commitment!",
     120: "🏃‍♂️ Half marathon done—keep that pace!",
     150: "🏅 Top 100? Nah, top 150 club!",
     180: "🧠 Only 70 to go. You got this!",
     210: "🏁 Final stretch!",
-    250: "🎉 ALL DONE! You’re a legend!"
+    250: "🎉 ALL DONE! You're a legend!"
 }
 idx = st.session_state.claim_index + 1
 st.markdown(f"### Claim {idx} of {len(claims_df)}")
@@ -196,22 +197,35 @@ with col2:
 prior = get_previous_answers(claim_number, st.session_state.user_email)
 if prior is not None:
     st.info("This claim was already reviewed. You may update your answers.")
-    st.session_state.sme_loss_cause = prior.get('SME Loss Cause', "Choose an option:")
-    st.session_state.sme_damaged_items = prior.get('SME Damaged Items', "")
-    st.session_state.sme_place_occurrence = prior.get('SME Place of Occurrence', "")
-    st.session_state.sme_triage = prior.get('SME Triage', "Choose an option:")
-    st.session_state.sme_triage_reasoning = prior.get('SME Triage Reasoning', "")
-    st.session_state.sme_prevailing_document = prior.get('SME Prevailing Document', "Choose an option:")
+    
+    # Initialize from previous answers
+    if "sme_loss_cause" not in st.session_state:
+        st.session_state.sme_loss_cause = prior.get('SME Loss Cause', "Choose an option:")
+    if "sme_damaged_items" not in st.session_state:
+        st.session_state.sme_damaged_items = prior.get('SME Damaged Items', "")
+    if "sme_place_occurrence" not in st.session_state:
+        st.session_state.sme_place_occurrence = prior.get('SME Place of Occurrence', "")
+    if "sme_triage" not in st.session_state:
+        st.session_state.sme_triage = prior.get('SME Triage', "Choose an option:")
+    if "sme_triage_reasoning" not in st.session_state:
+        st.session_state.sme_triage_reasoning = prior.get('SME Triage Reasoning', "")
+    if "sme_prevailing_document" not in st.session_state:
+        st.session_state.sme_prevailing_document = prior.get('SME Prevailing Document', "Choose an option:")
 
-    raw_coverage = prior.get('SME Coverage (applicable)', "")
-    st.session_state.sme_coverage_applicable = [c for c in raw_coverage.split("; ") if c in VALID_COVERAGE_OPTIONS] if raw_coverage else []
+    if "sme_coverage_applicable" not in st.session_state:
+        raw_coverage = prior.get('SME Coverage (applicable)', "")
+        st.session_state.sme_coverage_applicable = [c for c in raw_coverage.split("; ") if c in VALID_COVERAGE_OPTIONS] if raw_coverage else []
 
-    st.session_state.sme_limit_applicable = float(prior.get('SME Limit (applicable)', 0.0))
-    st.session_state.sme_reasoning = prior.get('SME Reasoning', "")
-    st.session_state.sme_claim_prediction = prior.get('SME Claim Prediction', "Choose an option:")
+    if "sme_limit_applicable" not in st.session_state:
+        st.session_state.sme_limit_applicable = float(prior.get('SME Limit (applicable)', 0.0))
+    if "sme_reasoning" not in st.session_state:
+        st.session_state.sme_reasoning = prior.get('SME Reasoning', "")
+    if "sme_claim_prediction" not in st.session_state:
+        st.session_state.sme_claim_prediction = prior.get('SME Claim Prediction', "Choose an option:")
 
-    raw_ai_error = prior.get('SME AI Error', "")
-    st.session_state.sme_ai_error = [e for e in raw_ai_error.split("; ") if e in VALID_AI_ERRORS] if raw_ai_error else []
+    if "sme_ai_error" not in st.session_state:
+        raw_ai_error = prior.get('SME AI Error', "")
+        st.session_state.sme_ai_error = [e for e in raw_ai_error.split("; ") if e in VALID_AI_ERRORS] if raw_ai_error else []
 
     st.session_state.time_spent_edit = float(prior.get('Time Spent (s)', 0.0))
     st.session_state.original_timestamp = prior.get('timestamp', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
@@ -335,14 +349,22 @@ with st.form("claim_form"):
         # Force everything to be string-safe
         row = [str(x) if x is not None else "" for x in row]
     
-        responses = get_all_responses()
-        match = (responses['Email'].str.lower() == st.session_state.user_email.lower()) & \
-                (responses['Claim Number'].astype(str) == claim_number)
-        if match.any():
-            row_index = responses[match].index[0] + 2  # Sheets is 1-indexed, first row is header
-            sheet.update(f"A{row_index}:P{row_index}", [row])
+        # Optimized logic for updates
+        all_responses = get_all_responses()
+        # Find rows matching this user's email and the current claim number
+        match_condition = ((all_responses['Email'].str.lower() == st.session_state.user_email.lower()) & 
+                          (all_responses['Claim Number'].astype(str) == claim_number))
+        
+        if match_condition.any():
+            # Getting the actual row number in Google Sheets (1-indexed with header)
+            row_index = all_responses.index[match_condition][0] + 2  # +2 because: +1 for 0-indexing to 1-indexing, +1 for header row
+            # Update the entire row in the sheet
+            sheet.update(f'A{row_index}:P{row_index}', [row])
+            st.success(f"Claim {claim_number} updated successfully!")
         else:
+            # Append a new row if no match found
             sheet.append_row(row)
+            st.success(f"Claim {claim_number} submitted successfully!")
 
         if submit_action == "Submit and Continue":
             st.session_state.claim_index += 1
