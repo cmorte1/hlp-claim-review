@@ -8,7 +8,8 @@ from datetime import datetime
 # ---------- Access Control List ----------
 ALLOWED_EMAILS = [
     'almodovar@mapfre.com', 'esgonza@mapfre.com', 'mchabot@mapfreusa.com', 'kmoon@mapfreusa.com',
-    'cortega@mapfreusa.com', 'mtangel@mapfre.com', 'cmorte1@mapfre.com'
+    'cortega@mapfreusa.com', 'mtangel@mapfre.com', 'cmorte1@mapfre.com', 'jstudebaker@mapfreusa.com',
+    'klandry@mapfreusa.com', 'ksama@mapfreusa.com'
 ]
 
 # ---------- Google Sheets Setup ----------
@@ -33,7 +34,7 @@ sheet = gclient.open("HLP_Responses").sheet1
 # ---------- Load and clean claims CSV ----------
 @st.cache_data(ttl=0)
 def load_claims():
-    df = pd.read_csv("/mnt/data/Claims.csv", encoding="utf-8", sep=";")
+    df = pd.read_csv("Claims.csv", encoding="utf-8", sep=";")
     # Columns: 'Claim Number', 'Loss Description', 'Claim Created Time'
     df.columns = [c.strip() for c in df.columns]
     return df
