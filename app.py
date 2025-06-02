@@ -42,14 +42,23 @@ def load_claims():
 claims_df = load_claims()
 
 # ---------- Load responses and helper functions ----------
-# @st.cache_data(ttl=0)
-# def get_all_responses():
-#     responses = pd.DataFrame(sheet.get_all_records())
-#     return responses
 @st.cache_data(ttl=0)
 def get_all_responses():
-    responses = pd.DataFrame(sheet.get_all_records())
-    st.write("DEBUG: Sheet columns as read:", responses.columns.tolist())
+    records = sheet.get_all_records()
+    columns = [
+        'SME Name', 'Email', 'Claim Number', 'Claim Created Time', 'Loss Cause', 'Damaged Items',
+        'Place of Occurrence', 'Triage', 'Triage Reasoning', 'Prevailing Document',
+        'Coverage (applicable)', 'Limit (applicable)', 'Claim decision', 'Reasoning',
+        'Time Spent (s)', 'timeStamp'
+    ]
+    if not records:
+        responses = pd.DataFrame(columns=columns)
+    else:
+        responses = pd.DataFrame(records)
+        for col in columns:
+            if col not in responses.columns:
+                responses[col] = ""
+        responses = responses[columns]
     return responses
 
 def get_user_responses(email):
