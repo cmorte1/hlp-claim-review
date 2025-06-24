@@ -97,12 +97,38 @@ if "reset_flag" in st.session_state and st.session_state.reset_flag:
 # ---------- Valid options for SME fields ----------
 VALID_COVERAGE_OPTIONS = [
     'Advantage Elite', 'Coverage A: Dwelling', 'Coverage B: Other Structures',
-    'Coverage C: Personal Property', 'No coverage at all', 'Liability claim'
+    'Coverage C: Personal Property', 'No coverage at all', 'Liability claim', 'Other endorsement'
 ]
 
 VALID_AI_ERRORS = [
-    'Claim Reasoning KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'
+    'Claim Reasoning PARTIAL-KO', 'Claim Reasoning FULL-KO', 'Document Analysis KO', 'Dates Analysis KO', 'Automatic Extractions KO'
 ]
+
+# ---------- Validation function for mandatory fields ----------
+def validate_mandatory_fields():
+    errors = []
+    
+    # Triage section mandatory fields
+    if st.session_state.get("sme_loss_cause", "Choose an option:") == "Choose an option:":
+        errors.append("SME Loss Cause is required")
+    
+    if st.session_state.get("sme_triage", "Choose an option:") == "Choose an option:":
+        errors.append("SME Triage is required")
+    
+    if not st.session_state.get("sme_triage_reasoning", "").strip():
+        errors.append("SME Triage Reasoning is required")
+    
+    # Claim Prediction section mandatory fields
+    if st.session_state.get("sme_prevailing_document", "Choose an option:") == "Choose an option:":
+        errors.append("SME Prevailing Document is required")
+    
+    if st.session_state.get("sme_claim_prediction", "Choose an option:") == "Choose an option:":
+        errors.append("SME Claim Prediction is required")
+    
+    if not st.session_state.get("sme_reasoning", "").strip():
+        errors.append("SME Reasoning is required")
+    
+    return errors
 
 # ---------- Landing Page ----------
 if not st.session_state.user_submitted:
@@ -237,6 +263,7 @@ else:
 st.subheader("📄 Claim Summary")
 st.markdown(f"**Claim Number:** {claim['claim_number']}")
 st.markdown(f"**Loss Description:** {claim['loss_description']}")
+st.markdown(f"**Claim Create Time:** {claim['claim_create_time']}")
 st.divider()
 
 # ---------- Helper for AI field display ----------
@@ -255,7 +282,7 @@ with st.form("claim_form"):
         'Water damage due to appliance failure', 'Water damage due to plumbing system', 'Other'
     ]
     selected_loss_cause = st.session_state.get("sme_loss_cause", "Choose an option:")
-    st.selectbox("SME Loss Cause", loss_cause_options, key="sme_loss_cause",
+    st.selectbox("SME Loss Cause *", loss_cause_options, key="sme_loss_cause",
                  index=loss_cause_options.index(selected_loss_cause)
                  if selected_loss_cause in loss_cause_options else 0)
 
@@ -268,7 +295,7 @@ with st.form("claim_form"):
     ai_box("AI Triage", claim['ai_triage'])
     triage_options = ['Choose an option:', 'Enough information', 'More information needed']
     selected_triage = st.session_state.get("sme_triage", "Choose an option:")
-    st.selectbox("SME Triage", triage_options, key="sme_triage",
+    st.selectbox("SME Triage *", triage_options, key="sme_triage",
                  index=triage_options.index(selected_triage)
                  if selected_triage in triage_options else 0,
                  help="**ENOUGH INFORMATION**: There is enough information in the description of the claim to move on to the analysis of the documents that may apply.\n\n"
@@ -277,7 +304,7 @@ with st.form("claim_form"):
                       "   • The SME continues with the procedures manually.")
 
     ai_box("AI Triage Reasoning", claim['ai_triage_reasoning'])
-    st.text_area("SME Triage Reasoning", key="sme_triage_reasoning", height=120, max_chars=5000,
+    st.text_area("SME Triage Reasoning *", key="sme_triage_reasoning", height=120, max_chars=5000,
                  help="Provide reasoning to support your triage decision:\n"
                       "• Why it considers there is not enough information to continue analyzing the claim, or\n\n"
                       "• Why it considers there is sufficient information to continue analyzing the claim through the applicable documents.")
@@ -288,7 +315,7 @@ with st.form("claim_form"):
     ai_box("AI Prevailing Document", claim['ai_prevailing_document'])
     document_options = ['Choose an option:', 'Policy', 'Endorsement']
     selected_doc = st.session_state.get("sme_prevailing_document", "Choose an option:")
-    st.selectbox("SME Prevailing Document", document_options, key="sme_prevailing_document",
+    st.selectbox("SME Prevailing Document *", document_options, key="sme_prevailing_document",
                  index=document_options.index(selected_doc)
                  if selected_doc in document_options else 0)
 
@@ -299,13 +326,14 @@ with st.form("claim_form"):
                    key="sme_coverage_applicable",
                    help="• Based on the LOSS DESCRIPTION\n\n"
                         "• And in the document that, according to the adjuster's criteria, applies to the claim, the SME will select the coverage that applies from the following list.\n\n"
-                        "• The selection can be multiple.")
+                        "• The selection can be multiple.\n\n"
+                        "• Don't forget to mention the name of the endorsement in the reasoning")
 
     ai_box("AI Limit (applicable)", claim['ai_limit_(applicable)'])
     st.number_input("SME Limit (applicable)", min_value=0.0, step=1000.0, key="sme_limit_applicable")
 
     ai_box("AI Reasoning", claim['ai_reasoning'])
-    st.text_area("SME Reasoning", key="sme_reasoning", max_chars=5000,
+    st.text_area("SME Reasoning *", key="sme_reasoning", max_chars=5000,
                  help="Based on the LOSS DESCRIPTION + PREVAILING DOCUMENT the SME explains:\n\n"
                       "• why he/she considers the claim is covered\n\n"
                       "• why he/she considers the claim is not covered/excluded.")
@@ -316,7 +344,7 @@ with st.form("claim_form"):
         'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
     ]
     selected_prediction = st.session_state.get("sme_claim_prediction", "Choose an option:")
-    st.selectbox("SME Claim Prediction", prediction_options, key="sme_claim_prediction",
+    st.selectbox("SME Claim Prediction *", prediction_options, key="sme_claim_prediction",
                  index=prediction_options.index(selected_prediction)
                  if selected_prediction in prediction_options else 0,
                  help="COVERED:\n"
@@ -332,47 +360,79 @@ with st.form("claim_form"):
     submitted = st.form_submit_button("Submit")
 
     if submitted:
-        time_taken = st.session_state.time_spent_edit or round(time.time() - st.session_state.start_time, 2)
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # Validate mandatory fields
+        validation_errors = validate_mandatory_fields()
         
-        claim_number = str(claim["claim_number"]) 
-        row = [
-            st.session_state.user_name, st.session_state.user_email, claim_number,
-            st.session_state.sme_loss_cause, st.session_state.sme_damaged_items,
-            st.session_state.sme_place_occurrence, st.session_state.sme_triage,
-            st.session_state.sme_triage_reasoning, st.session_state.sme_prevailing_document,
-            "; ".join(st.session_state.sme_coverage_applicable),
-            st.session_state.sme_limit_applicable, st.session_state.sme_reasoning,
-            st.session_state.sme_claim_prediction, "; ".join(st.session_state.sme_ai_error),
-            time_taken, timestamp
-        ]
-        # Force everything to be string-safe
-        row = [str(x) if x is not None else "" for x in row]
-    
-        # Optimized logic for updates
-        all_responses = get_all_responses()
-        # Find rows matching this user's email and the current claim number
-        match_condition = ((all_responses['Email'].str.lower() == st.session_state.user_email.lower()) & 
-                          (all_responses['Claim Number'].astype(str) == claim_number))
-        
-        if match_condition.any():
-            # Getting the actual row number in Google Sheets (1-indexed with header)
-            row_index = all_responses.index[match_condition][0] + 2  # +2 because: +1 for 0-indexing to 1-indexing, +1 for header row
-            # Update the entire row in the sheet
-            sheet.update(f'A{row_index}:P{row_index}', [row])
-            st.success(f"Claim {claim_number} updated successfully!")
+        if validation_errors:
+            st.error("Please fill in the following required fields:")
+            for error in validation_errors:
+                st.error(f"• {error}")
         else:
-            # Append a new row if no match found
-            sheet.append_row(row)
-            st.success(f"Claim {claim_number} submitted successfully!")
+            time_taken = st.session_state.time_spent_edit or round(time.time() - st.session_state.start_time, 2)
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            claim_number = str(claim["claim_number"])
+            
+            # Updated row structure with AI and SME data paired together
+            row = [
+                st.session_state.user_name,  # SME Name
+                st.session_state.user_email,  # Email
+                claim_number,  # Claim Number
+                claim['loss_description'],  # Loss Description
+                claim['claim_create_time'],  # Claim Create Time
+                claim['ai_loss_cause'],  # AI Loss Cause
+                st.session_state.sme_loss_cause,  # SME Loss Cause
+                claim['ai_damaged_items'],  # AI Damaged Items
+                st.session_state.sme_damaged_items,  # SME Damaged Items
+                claim['ai_place_of_occurrence'],  # AI Place of Occurrence
+                st.session_state.sme_place_occurrence,  # SME Place of Occurrence
+                claim['ai_triage'],  # AI Triage
+                st.session_state.sme_triage,  # SME Triage
+                claim['ai_triage_reasoning'],  # AI Triage Reasoning
+                st.session_state.sme_triage_reasoning,  # SME Triage Reasoning
+                claim['ai_prevailing_document'],  # AI Prevailing Document
+                st.session_state.sme_prevailing_document,  # SME Prevailing Document
+                claim['ai_section_page_document'],  # AI Section/Page Document
+                claim['ai_coverage_(applicable)'],  # AI Coverage (applicable)
+                "; ".join(st.session_state.sme_coverage_applicable),  # SME Coverage (applicable)
+                claim['ai_limit_(applicable)'],  # AI Limit (applicable)
+                st.session_state.sme_limit_applicable,  # SME Limit (applicable)
+                claim['ai_reasoning'],  # AI Reasoning
+                st.session_state.sme_reasoning,  # SME Reasoning
+                claim['ai_claim_prediction'],  # AI Claim Prediction
+                st.session_state.sme_claim_prediction,  # SME Claim Prediction
+                "; ".join(st.session_state.sme_ai_error),  # SME AI Error
+                time_taken,  # Time Spent (s)
+                timestamp  # timestamp
+            ]
+            
+            # Force everything to be string-safe
+            row = [str(x) if x is not None else "" for x in row]
+        
+            # Optimized logic for updates
+            all_responses = get_all_responses()
+            # Find rows matching this user's email and the current claim number
+            match_condition = ((all_responses['Email'].str.lower() == st.session_state.user_email.lower()) & 
+                              (all_responses['Claim Number'].astype(str) == claim_number))
+            
+            if match_condition.any():
+                # Getting the actual row number in Google Sheets (1-indexed with header)
+                row_index = all_responses.index[match_condition][0] + 2  # +2 because: +1 for 0-indexing to 1-indexing, +1 for header row
+                # Update the entire row in the sheet - now with more columns
+                sheet.update(f'A{row_index}:AC{row_index}', [row])
+                st.success(f"Claim {claim_number} updated successfully!")
+            else:
+                # Append a new row if no match found
+                sheet.append_row(row)
+                st.success(f"Claim {claim_number} submitted successfully!")
 
-        if submit_action == "Submit and Continue":
-            st.session_state.claim_index += 1
-            queue_reset_form()
-            st.rerun()
-        elif submit_action == "Submit and Pause":
-            st.session_state.paused = True
-            st.rerun()
+            if submit_action == "Submit and Continue":
+                st.session_state.claim_index += 1
+                queue_reset_form()
+                st.rerun()
+            elif submit_action == "Submit and Pause":
+                st.session_state.paused = True
+                st.rerun()
 
 
 # ---------- Bottom Status ----------
