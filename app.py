@@ -350,7 +350,7 @@ with st.form("claim_form"):
     st.subheader("📘 Claim Prediction")
 
     ai_box("AI Prevailing Document", claim['ai_prevailing_document'])
-    document_options = ['Choose an option:', 'Policy', 'Endorsement']
+    document_options = ['Choose an option:', 'Policy', 'Endorsement', 'More information needed']
     selected_doc = st.session_state.get("sme_prevailing_document", "Choose an option:")
     st.selectbox("SME Prevailing Document (Requested)", document_options, key="sme_prevailing_document",
                  index=document_options.index(selected_doc)
@@ -378,7 +378,7 @@ with st.form("claim_form"):
     ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
     prediction_options = [
         'Choose an option:', 'Covered - Fully', 'Covered - Likely',
-        'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
+        'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely', 'More information needed'
     ]
     selected_prediction = st.session_state.get("sme_claim_prediction", "Choose an option:")
     st.selectbox("SME Claim Prediction (Requested)", prediction_options, key="sme_claim_prediction",
