@@ -43,16 +43,26 @@ claims_df = load_claims()
 # ---------- Load responses and helper functions ----------
 @st.cache_data(ttl=0)
 def get_all_responses():
-    responses = pd.DataFrame(sheet.get_all_records())
-    return responses
+    try:
+        responses = pd.DataFrame(sheet.get_all_records())
+        # Check if the sheet is empty or doesn't have proper headers
+        if responses.empty or 'Email' not in responses.columns:
+            return pd.DataFrame()
+        return responses
+    except:
+        return pd.DataFrame()
 
 def get_user_responses(email):
     responses = get_all_responses()
+    if responses.empty or 'Email' not in responses.columns:
+        return pd.DataFrame()
     user_responses = responses[responses['Email'].str.lower() == email.lower()]
     return user_responses
 
 def get_previous_answers(claim_number, user_email):
     responses = get_all_responses()
+    if responses.empty or 'Email' not in responses.columns or 'Claim Number' not in responses.columns:
+        return None
     row = responses[responses['Email'].str.lower() == user_email.lower()]
     row = row[row['Claim Number'].astype(str) == str(claim_number)]
     return row.iloc[0] if not row.empty else None
@@ -154,7 +164,7 @@ if not st.session_state.user_submitted:
         st.session_state.user_email = email
 
         responses = get_all_responses()
-        if not responses.empty:
+        if not responses.empty and 'Email' in responses.columns and 'Claim Number' in responses.columns:
             user_responses = responses[responses['Email'].str.lower() == email.lower()]
             if not user_responses.empty:
                 reviewed_claims = user_responses["Claim Number"].dropna().unique()
@@ -224,7 +234,7 @@ prior = get_previous_answers(claim_number, st.session_state.user_email)
 if prior is not None:
     st.info("This claim was already reviewed. You may update your answers.")
     
-    # Initialize from previous answers
+    # Initialize from previous answers with safe column access
     if "sme_loss_cause" not in st.session_state:
         st.session_state.sme_loss_cause = prior.get('SME Loss Cause', "Choose an option:")
     if "sme_damaged_items" not in st.session_state:
@@ -243,7 +253,10 @@ if prior is not None:
         st.session_state.sme_coverage_applicable = [c for c in raw_coverage.split("; ") if c in VALID_COVERAGE_OPTIONS] if raw_coverage else []
 
     if "sme_limit_applicable" not in st.session_state:
-        st.session_state.sme_limit_applicable = float(prior.get('SME Limit (applicable)', 0.0))
+        try:
+            st.session_state.sme_limit_applicable = float(prior.get('SME Limit (applicable)', 0.0))
+        except:
+            st.session_state.sme_limit_applicable = 0.0
     if "sme_reasoning" not in st.session_state:
         st.session_state.sme_reasoning = prior.get('SME Reasoning', "")
     if "sme_claim_prediction" not in st.session_state:
@@ -253,7 +266,10 @@ if prior is not None:
         raw_ai_error = prior.get('SME AI Error', "")
         st.session_state.sme_ai_error = [e for e in raw_ai_error.split("; ") if e in VALID_AI_ERRORS] if raw_ai_error else []
 
-    st.session_state.time_spent_edit = float(prior.get('Time Spent (s)', 0.0))
+    try:
+        st.session_state.time_spent_edit = float(prior.get('Time Spent (s)', 0.0))
+    except:
+        st.session_state.time_spent_edit = 0.0
     st.session_state.original_timestamp = prior.get('timestamp', datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 else:
     st.session_state.time_spent_edit = None
@@ -412,17 +428,22 @@ with st.form("claim_form"):
             # Optimized logic for updates
             all_responses = get_all_responses()
             # Find rows matching this user's email and the current claim number
-            match_condition = ((all_responses['Email'].str.lower() == st.session_state.user_email.lower()) & 
-                              (all_responses['Claim Number'].astype(str) == claim_number))
-            
-            if match_condition.any():
-                # Getting the actual row number in Google Sheets (1-indexed with header)
-                row_index = all_responses.index[match_condition][0] + 2  # +2 because: +1 for 0-indexing to 1-indexing, +1 for header row
-                # Update the entire row in the sheet - now with more columns
-                sheet.update(f'A{row_index}:AC{row_index}', [row])
-                st.success(f"Claim {claim_number} updated successfully!")
+            if not all_responses.empty and 'Email' in all_responses.columns and 'Claim Number' in all_responses.columns:
+                match_condition = ((all_responses['Email'].str.lower() == st.session_state.user_email.lower()) & 
+                                  (all_responses['Claim Number'].astype(str) == claim_number))
+                
+                if match_condition.any():
+                    # Getting the actual row number in Google Sheets (1-indexed with header)
+                    row_index = all_responses.index[match_condition][0] + 2  # +2 because: +1 for 0-indexing to 1-indexing, +1 for header row
+                    # Update the entire row in the sheet - now with more columns
+                    sheet.update(f'A{row_index}:AC{row_index}', [row])
+                    st.success(f"Claim {claim_number} updated successfully!")
+                else:
+                    # Append a new row if no match found
+                    sheet.append_row(row)
+                    st.success(f"Claim {claim_number} submitted successfully!")
             else:
-                # Append a new row if no match found
+                # Append a new row if sheet is empty or doesn't have proper structure
                 sheet.append_row(row)
                 st.success(f"Claim {claim_number} submitted successfully!")
 
