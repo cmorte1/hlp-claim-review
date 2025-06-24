@@ -34,9 +34,30 @@ sheet = gclient.open("HLP_Responses").sheet1
 # ---------- Load and clean claims CSV ----------
 @st.cache_data(ttl=0)
 def load_claims():
-    df = pd.read_csv("Claims.csv", encoding="utf-8", sep=";")
-    df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_").str.replace("/", "_")
-    return df
+    # Try different encodings to handle various file formats
+    encodings_to_try = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252', 'iso-8859-1']
+    
+    for encoding in encodings_to_try:
+        try:
+            df = pd.read_csv("Claims.csv", encoding=encoding, sep=";")
+            df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_").str.replace("/", "_")
+            print(f"Successfully loaded Claims.csv with encoding: {encoding}")
+            return df
+        except UnicodeDecodeError:
+            continue
+        except Exception as e:
+            print(f"Error with encoding {encoding}: {e}")
+            continue
+    
+    # If all encodings fail, try with error handling
+    try:
+        df = pd.read_csv("Claims.csv", encoding="utf-8", sep=";", errors='replace')
+        df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_").str.replace("/", "_")
+        print("Loaded Claims.csv with UTF-8 and error replacement")
+        return df
+    except Exception as e:
+        st.error(f"Failed to load Claims.csv: {e}")
+        st.stop()
 
 claims_df = load_claims()
 
@@ -329,7 +350,7 @@ with st.form("claim_form"):
     st.subheader("📘 Claim Prediction")
 
     ai_box("AI Prevailing Document", claim['ai_prevailing_document'])
-    document_options = ['Choose an option:', 'Policy', 'Endorsement', 'More information needed']
+    document_options = ['Choose an option:', 'Policy', 'Endorsement']
     selected_doc = st.session_state.get("sme_prevailing_document", "Choose an option:")
     st.selectbox("SME Prevailing Document (Requested)", document_options, key="sme_prevailing_document",
                  index=document_options.index(selected_doc)
@@ -357,7 +378,7 @@ with st.form("claim_form"):
     ai_box("AI Claim Prediction", claim['ai_claim_prediction'])
     prediction_options = [
         'Choose an option:', 'Covered - Fully', 'Covered - Likely',
-        'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely', 'More information needed'
+        'Not covered/Excluded - Fully', 'Not covered/Excluded – Likely'
     ]
     selected_prediction = st.session_state.get("sme_claim_prediction", "Choose an option:")
     st.selectbox("SME Claim Prediction (Requested)", prediction_options, key="sme_claim_prediction",
